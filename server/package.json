@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsc --watch & node --watch dist/server.js",
-    "build": "tsc --build tsconfig.json",
+    "install:build": "npm install & tsc --build tsconfig.json",
     "start": "npm run build & node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
