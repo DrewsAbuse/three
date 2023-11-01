@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsc --watch & node --watch dist/server.js",
     "build": "tsc --build tsconfig.json",
-    "run": "node dist/main.js",
+    "start": "npm run build & node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "prettier": "@shelf/prettier-config",
