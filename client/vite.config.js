@@ -1,6 +1,7 @@
 import {resolve} from 'path';
 import {fileURLToPath} from 'url';
 import {defineConfig} from 'vite';
+import vercelPlugin from 'vite-plugin-vercel';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -22,10 +23,18 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // with options: http://localhost:5173/api/bar-> http://jsonplaceholder.typicode.com/bar
-      '/contact': {
-        target: process.env.API_URL ?? 'http://localhost:3322',
+      '/api': {
+        target: 'http://localhost:3322',
       },
     },
+  },
+  plugins: [vercelPlugin()],
+  vercel: {
+    rewrites: [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.API_URL}:path*`,
+      },
+    ],
   },
 });
