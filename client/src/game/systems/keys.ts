@@ -1,8 +1,8 @@
-import type {World} from '../ecs.ts';
 import type {ControlsValue} from '../keys-input.ts';
+import type {ClientWorld} from '../ecs.ts';
 import {componentTypeToBitMask} from '../component.ts';
 
-export const inputSystem = function (this: World) {
+export const inputSystem = function (this: ClientWorld) {
   this.controlsValue.axis1Forward = 0.0;
   this.controlsValue.axis1Side = 0.0;
   this.controlsValue.shift = false;
@@ -29,9 +29,9 @@ export const inputSystem = function (this: World) {
     this.controlsValue.shift = true;
   }
 
-  const archetypePartition = this.getArchetypePartitionByComponentsMask(
-    componentTypeToBitMask.keys
-  );
+  const archetypePartition = this.getArchetypePartitionByComponentsMasks([
+    componentTypeToBitMask.keys,
+  ]);
   const componentsBitMaskToIndex = archetypePartition[0];
 
   for (let i = this.archetypePartitionStartIndex; i < archetypePartition.length; i++) {

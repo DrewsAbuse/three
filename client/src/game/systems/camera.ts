@@ -4,12 +4,10 @@ import type {ClientWorld} from '../ecs.ts';
 import {componentTypeToBitMask} from '../component.ts';
 
 export const cameraSystem = function (this: ClientWorld, timeElapsedS: number) {
-  let maskForFind = 0;
-
-  maskForFind |= componentTypeToBitMask.keys;
-  maskForFind |= componentTypeToBitMask.mesh;
-
-  const archetypePartition = this.getArchetypePartitionByComponentsMask(maskForFind);
+  const archetypePartition = this.getArchetypePartitionByComponentsMasks([
+    componentTypeToBitMask.keys,
+    componentTypeToBitMask.mesh,
+  ]);
   const componentsIndexes = archetypePartition[0];
 
   for (let i = this.archetypePartitionStartIndex; i < archetypePartition.length; i++) {

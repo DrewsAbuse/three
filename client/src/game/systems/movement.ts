@@ -6,15 +6,13 @@ import {componentTypeToBitMask} from '../component.ts';
 import {negativeClamp} from '../helpers';
 
 export const movementSystem = function (this: World, timeElapsedS: number) {
-  let maskForFind = 0;
-
-  maskForFind |= componentTypeToBitMask.keys;
-  maskForFind |= componentTypeToBitMask.mesh;
-  maskForFind |= componentTypeToBitMask.velocity;
-  maskForFind |= componentTypeToBitMask.acceleration;
-  maskForFind |= componentTypeToBitMask.decceleration;
-
-  const archetypePartition = this.getArchetypePartitionByComponentsMask(maskForFind);
+  const archetypePartition = this.getArchetypePartitionByStrictComponentsMask([
+    componentTypeToBitMask.keys,
+    componentTypeToBitMask.mesh,
+    componentTypeToBitMask.velocity,
+    componentTypeToBitMask.acceleration,
+    componentTypeToBitMask.decceleration,
+  ]);
   const componentsIndexes = archetypePartition[0];
 
   const vector3Tmp = new THREE.Vector3(0, 0, 0);
@@ -72,6 +70,7 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
 
     const forward = this.normalizedVector3Z.clone();
     forward.applyQuaternion(entityQuaternionClone);
+
     forward.normalize();
 
     const sideways = this.normalizedVector3X.clone();
