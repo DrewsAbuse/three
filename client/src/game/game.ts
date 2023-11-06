@@ -17,25 +17,31 @@ const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+const camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 1500);
+
 //handle window resize
 
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
 });
 
-const camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 1500);
 const scene = new Scene();
-const cube = new BoxGeometry(1, 1, 1);
-const material = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
-const mesh = new Mesh(cube, material);
+
 const material2 = new MeshBasicMaterial({color: 0x0000ff, wireframe: true});
 const mesh2 = new Mesh(new BoxGeometry(1, 1, 1), material2);
 const light = new AmbientLight(0x404040); // soft white light
 const axesHelper = new AxesHelper(5);
 const axesHelper2 = new AxesHelper(5);
 
-mesh.add(axesHelper);
+const cube = new BoxGeometry(1, 1, 1);
+const material = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
+const mesh = new Mesh(cube, material);
 
+mesh.rotation.y = -2;
+camera.rotation.y = -2;
+
+mesh.add(axesHelper);
 scene.add(mesh);
 scene.add(light);
 scene.add(mesh2.add(axesHelper2));
