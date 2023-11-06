@@ -10,14 +10,20 @@ import {
   WebGLRenderer,
 } from 'three';
 import {Component, componentTypeToBitMask} from './component.ts';
-import {ClientWorld} from './ecs.ts';
+import {ClientWorld, createRandomRadiusCircleOrbit} from './ecs.ts';
 
 const renderer = new WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 1000);
+//handle window resize
+
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 1500);
 const scene = new Scene();
 const cube = new BoxGeometry(1, 1, 1);
 const material = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
@@ -51,7 +57,7 @@ const meshComponent = new Component({
   bitMask: componentTypeToBitMask.mesh,
 });
 const accelerationComponent = new Component({
-  data: new Vector3(100, 0.5, 25000),
+  data: new Vector3(100, 0.5, 0),
   bitMask: componentTypeToBitMask.acceleration,
 });
 const deccelerationComponent = new Component({
@@ -68,32 +74,37 @@ const createCube = () => {
   const material = new MeshBasicMaterial({color: Math.random() * 0xffffff, wireframe: true});
   const mesh = new Mesh(cube, material);
 
-  mesh.position.x = Math.random() * 200 - 5;
-  mesh.position.y = Math.random() * 200 - 5;
-  mesh.position.z = Math.random() * 200 - 5;
+  mesh.position.x = Math.random() * 800;
+  mesh.position.y = Math.random() * 100;
+  mesh.position.z = Math.random() * 100;
 
   return mesh;
 };
 
 const world = new ClientWorld({renderer, scene, camera});
 
-//Create 1000 cubes
+world.requestAnimationFrameWithElapsedTime();
 
-for (let i = 0; i < 1000; i++) {
+//create 1000 cubes
+
+console.time('create 10000 cubes');
+for (let i = 0; i < 5000; i++) {
   const cube = createCube();
+  const radius = createRandomRadiusCircleOrbit();
+
   world.createEntityAndAddToScene([
+    new Component({data: radius, bitMask: componentTypeToBitMask.radius}),
     new Component({data: cube, bitMask: componentTypeToBitMask.mesh}),
   ]);
 }
+console.timeEnd('create 10000 cubes');
 
-world.requestAnimationFrameWithElapsedTime();
-
-world.createEntity([
+world.createEntityAndAddToScene([
   keysComponent,
   meshComponent,
   velocityComponent,
   deccelerationComponent,
   accelerationComponent,
 ]);
-//
+
 console.log(world.mapComponentsMaskToArchetype);

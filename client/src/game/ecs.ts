@@ -1,4 +1,4 @@
-import {Vector3} from 'three';
+import {Quaternion, Vector3} from 'three';
 import type {Mesh, PerspectiveCamera, Scene, WebGLRenderer} from 'three';
 import type {Component, Data} from './component.ts';
 import type {WebGPURenderer} from './web-gup.ts';
@@ -11,7 +11,8 @@ import {getAutoIncrementIdGenerator} from './helpers';
 import {componentTypeToBitMask} from './component.ts';
 
 export type EntityArray = [number, number, number, number, ...Data[]];
-type TwoDimensionalArray = [Record<number, number>, ...EntityArray[]][];
+
+type TwoDimensionalArray = [number, Record<number, number>, ...EntityArray][];
 type MapComponentsMaskToArchetype = Map<
   number,
   {
@@ -20,15 +21,6 @@ type MapComponentsMaskToArchetype = Map<
     twoDimensionalArray: TwoDimensionalArray;
   }
 >;
-
-export class Entity {
-  static autoIncrementId = 0;
-  id: number;
-
-  constructor() {
-    this.id = Entity.autoIncrementId++;
-  }
-}
 
 export abstract class World {
   getEntityAutoIncrementId = getAutoIncrementIdGenerator();
@@ -44,14 +36,9 @@ export abstract class World {
   isDeletedInit = 0;
   isDirtyInit = 0;
 
-  defaultComponentIndex = {
-    id: 0,
-    isDeleted: 1,
-    isDirty: 2,
-  } as const;
-
+  partitionStartIndex = 2;
+  partitionDefaultsOffset = this.partitionStartIndex + 1;
   offsetForEntityArrayDefaults = 4;
-  archetypePartitionStartIndex = 1;
 
   controlsValue = {
     axis1Forward: 0.0,
@@ -63,73 +50,73 @@ export abstract class World {
     backspace: false,
   };
 
-  createEntityArray = (
-    sortedComponents: Component[],
-    componentsBitMask: number,
-    archetypeKeyComponentsMask?: number
-  ): {
+  insertEntity({
+    entityId,
+    sortedComponents,
+    componentsBitMask,
+    partition,
+    entityIdToIndex,
+  }: {
     entityId: number;
-    entityArray: EntityArray;
-    partitionBitMaskToIndex: Record<number, number>;
-  } => {
-    const entityId = this.getEntityAutoIncrementId();
+    sortedComponents: Component[];
+    componentsBitMask: number;
+    partition: TwoDimensionalArray[number];
+    entityIdToIndex: Map<number, number>;
+  }): void {
+    let lastInsertIndex = partition[0];
     this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
 
-    const entityArray = new Array(4 + sortedComponents.length) as EntityArray;
-    const componentsBitMaskToIndex: Record<number, number> = {};
-    let partialComponentsBitMask = 0;
+    partition[++lastInsertIndex] = entityId;
+    entityIdToIndex.set(entityId, lastInsertIndex);
 
-    entityArray[0] = entityId;
-    entityArray[1] = this.isDeletedInit;
-    entityArray[2] = this.isDirtyInit;
-    entityArray[3] = componentsBitMask;
+    partition[++lastInsertIndex] = this.isDeletedInit;
+    partition[++lastInsertIndex] = this.isDirtyInit;
+    partition[++lastInsertIndex] = componentsBitMask;
 
     for (let i = 0; i < sortedComponents.length; i++) {
-      const {bitMask, data} = sortedComponents[i];
+      const {data} = sortedComponents[i];
 
-      partialComponentsBitMask |= bitMask;
-
-      componentsBitMaskToIndex[bitMask] = i + this.offsetForEntityArrayDefaults;
-      entityArray[i + this.offsetForEntityArrayDefaults] = data;
-
-      this.mapComponentMaskToArchetypeMask.set(
-        partialComponentsBitMask,
-        archetypeKeyComponentsMask ?? componentsBitMask
-      );
+      partition[++lastInsertIndex] = data;
     }
 
-    return {entityId, entityArray, partitionBitMaskToIndex: componentsBitMaskToIndex};
-  };
+    partition[0] = lastInsertIndex;
+  }
 
   createEntity(components: Component[]) {
     const componentsBitMask = components.reduce((acc, component) => acc | component.bitMask, 0);
     const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
+    const entityId = this.getEntityAutoIncrementId();
 
     let isArchetypeFound = false;
 
     this.mapComponentsMaskToArchetype.forEach((archetype, archetypeKeyComponentsMask) => {
       if ((archetypeKeyComponentsMask & componentsBitMask) === archetypeKeyComponentsMask) {
         isArchetypeFound = true;
-        const {entityArray, partitionBitMaskToIndex, entityId} = this.createEntityArray(
-          sortedComponents,
-          componentsBitMask,
-          archetypeKeyComponentsMask
-        );
 
         const index = archetype.bitMaskToIndex.get(componentsBitMask);
 
         if (index !== undefined) {
-          archetype.twoDimensionalArray[index].push(entityArray);
+          this.insertEntity({
+            entityId,
+            sortedComponents,
+            componentsBitMask,
+            partition: archetype.twoDimensionalArray[index],
+            entityIdToIndex: archetype.entityIdToIndex,
+          });
         } else {
           archetype.bitMaskToIndex.set(
             componentsBitMask,
-            archetype.twoDimensionalArray.push([partitionBitMaskToIndex, entityArray]) - 1
+            archetype.twoDimensionalArray.push(
+              this.createPartitionWithEntity({
+                componentsBitMask,
+                sortedComponents,
+                entityId,
+                entityIdToIndex: archetype.entityIdToIndex,
+                archetypeKeyComponentsMask,
+              })
+            ) - 1
           );
         }
-
-        archetype.entityIdToIndex.set(entityId, archetype.twoDimensionalArray.length - 1);
-
-        return;
       }
     });
 
@@ -141,26 +128,104 @@ export abstract class World {
     }
   }
 
+  createPartitionWithEntity({
+    componentsBitMask,
+    sortedComponents,
+    entityId,
+    entityIdToIndex,
+    archetypeKeyComponentsMask,
+  }: {
+    sortedComponents: Component[];
+    componentsBitMask: number;
+    entityId: number;
+    entityIdToIndex: Map<number, number>;
+    archetypeKeyComponentsMask: number;
+  }) {
+    let currentInsertIndex = this.partitionStartIndex;
+    const entityLength = this.offsetForEntityArrayDefaults + sortedComponents.length;
+
+    const partition = new Array<Record<number, number> | Data>(
+      this.partitionStartIndex + entityLength
+    );
+    this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
+
+    const componentsBitMaskToIndex: Record<number, number> = {};
+    let partialComponentsBitMask = 0;
+
+    partition[++currentInsertIndex] = entityId;
+    entityIdToIndex.set(entityId, currentInsertIndex);
+
+    partition[++currentInsertIndex] = this.isDeletedInit;
+    partition[++currentInsertIndex] = this.isDirtyInit;
+    partition[++currentInsertIndex] = componentsBitMask;
+
+    for (let i = 0; i < sortedComponents.length; i++) {
+      const {bitMask, data} = sortedComponents[i];
+
+      partialComponentsBitMask |= bitMask;
+      componentsBitMaskToIndex[bitMask] = i + this.offsetForEntityArrayDefaults;
+
+      partition[++currentInsertIndex] = data;
+
+      this.mapComponentMaskToArchetypeMask.set(
+        partialComponentsBitMask,
+        archetypeKeyComponentsMask
+      );
+    }
+
+    partition[0] = currentInsertIndex;
+    partition[1] = componentsBitMaskToIndex;
+    partition[2] = entityLength;
+
+    return partition as TwoDimensionalArray[number];
+  }
+
   createArchetype({
     componentsBitMask,
-    components,
+    components: sortedComponents,
   }: {
     components: Component[];
     componentsBitMask: number;
   }) {
-    const {entityArray, partitionBitMaskToIndex, entityId} = this.createEntityArray(
-      components,
-      componentsBitMask
-    );
+    let currentInsertIndex = this.partitionStartIndex;
+    const entityLength = this.offsetForEntityArrayDefaults + sortedComponents.length;
 
-    const twoDimensionalArray: TwoDimensionalArray = [[partitionBitMaskToIndex, entityArray]];
-    const bitMaskToIndex = new Map([[componentsBitMask, 0]]);
-    const entityIdToIndex = new Map([[entityId, 0]]);
+    const twoDimensionalArray = [
+      new Array<Record<number, number> | Data>(this.partitionStartIndex + entityLength),
+    ];
+    const entityId = this.getEntityAutoIncrementId();
+
+    this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
+
+    const componentsBitMaskToIndex: Record<number, number> = {};
+    let partialComponentsBitMask = 0;
+
+    twoDimensionalArray[0][++currentInsertIndex] = entityId;
+    const entityIdToIndex = new Map([[entityId, currentInsertIndex]]);
+
+    twoDimensionalArray[0][++currentInsertIndex] = this.isDeletedInit;
+    twoDimensionalArray[0][++currentInsertIndex] = this.isDirtyInit;
+    twoDimensionalArray[0][++currentInsertIndex] = componentsBitMask;
+
+    for (let i = 0; i < sortedComponents.length; i++) {
+      const {bitMask, data} = sortedComponents[i];
+
+      partialComponentsBitMask |= bitMask;
+
+      twoDimensionalArray[0][++currentInsertIndex] = data;
+      componentsBitMaskToIndex[bitMask] = i + this.offsetForEntityArrayDefaults;
+
+      this.mapComponentMaskToArchetypeMask.set(partialComponentsBitMask, componentsBitMask);
+    }
+
+    twoDimensionalArray[0][0] = currentInsertIndex;
+    twoDimensionalArray[0][1] = componentsBitMaskToIndex;
+    twoDimensionalArray[0][2] = entityLength;
 
     this.mapComponentsMaskToArchetype.set(componentsBitMask, {
-      bitMaskToIndex,
+      twoDimensionalArray: twoDimensionalArray as TwoDimensionalArray,
       entityIdToIndex,
-      twoDimensionalArray,
+      bitMaskToIndex: new Map([[componentsBitMask, 0]]),
     });
   }
 
@@ -201,77 +266,6 @@ export abstract class World {
     }
 
     return twoDimensionalArray[subArrayIndex];
-  }
-
-  getEntity({entityId, componentsMask}: {entityId: number; componentsMask: number}) {
-    const query = this.mapComponentMaskToArchetypeMask.get(componentsMask)!;
-
-    const {twoDimensionalArray, bitMaskToIndex, entityIdToIndex} =
-      this.mapComponentsMaskToArchetype.get(query)!;
-
-    const subArrayIndex = bitMaskToIndex.get(query);
-
-    if (subArrayIndex === undefined) {
-      throw new Error(`componentsMask ${componentsMask} not found, query ${query}`);
-    }
-
-    const partition = twoDimensionalArray[subArrayIndex];
-    const entityIndex = entityIdToIndex.get(entityId);
-
-    if (entityIndex === undefined) {
-      throw new Error(`entityId ${entityId} not found`);
-    }
-
-    return {
-      entity: partition[entityIndex],
-      componentsIndexes: partition[0],
-    };
-  }
-
-  deleteEntity(entityId: number) {
-    const componentsMask = this.mapEntityIdTomapComponentsMask.get(entityId);
-
-    if (componentsMask === undefined) {
-      throw new Error(`entityId ${entityId} not found`);
-    }
-
-    const {entity, componentsIndexes} = this.getEntity({entityId, componentsMask});
-
-    entity[this.defaultComponentIndex.isDeleted] = 1;
-
-    return {
-      entity,
-      componentsIndexes,
-    };
-  }
-
-  clenUpArchetypes() {
-    //Sort (using quick sort) all deleted entities to the end of the array and live entities to the beginning
-
-    this.mapComponentsMaskToArchetype.forEach(archetype => {
-      archetype.twoDimensionalArray.forEach(subArray => {
-        let left = this.archetypePartitionStartIndex;
-        let right = subArray.length - 1;
-
-        while (left < right) {
-          while (left < right && subArray[left][this.defaultComponentIndex.isDeleted] === 0) {
-            left++;
-          }
-
-          while (left < right && subArray[right][this.defaultComponentIndex.isDeleted] === 1) {
-            right--;
-          }
-
-          if (left < right) {
-            const temp = subArray[left];
-            subArray[left] = subArray[right];
-            subArray[right] = temp;
-          }
-        }
-      });
-    });
-
-    console.log(`this.mapComponentsMaskToArchetype`, this.mapComponentsMaskToArchetype);
   }
 
   inputSystem = inputSystem;
@@ -346,32 +340,20 @@ export class ClientWorld extends World {
     {
       const timeElapsedS = Math.min(1.0 / 30.0, timeElapsed * 0.001);
 
-      if (this.inputSystemUpdateId !== this.keySets.keySetUpdateId[0]) {
-        this.inputSystem();
-        this.inputSystemUpdateId = this.keySets.keySetUpdateId[0];
-      }
-
       if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
         this.renderSceneSystem();
         this.renderSystemUpdateId = this.sceneEntities.updateId[0];
       }
 
+      if (this.inputSystemUpdateId !== this.keySets.keySetUpdateId[0]) {
+        this.inputSystem();
+        this.inputSystemUpdateId = this.keySets.keySetUpdateId[0];
+      }
+
       this.movementSystem(timeElapsedS);
       this.cameraSystem(timeElapsedS);
+      this.flightByCircleOrbitCubeSystem();
     }
-  }
-
-  deleteEntityAndRemoveFromScene(entityId: number) {
-    const {entity, componentsIndexes} = this.deleteEntity(entityId);
-
-    const meshComponent = entity[componentsIndexes[componentTypeToBitMask.mesh]];
-
-    if (meshComponent === undefined) {
-      throw new Error(`meshComponent not found`);
-    }
-
-    this.sceneEntities.deleteMesh(meshComponent);
-    this.sceneEntities.updateId[0]++;
   }
 
   createEntityAndAddToScene(components: Component[]) {
@@ -399,4 +381,47 @@ export class ClientWorld extends World {
     this.sceneEntities.meshToAdd.length = 0;
     this.sceneEntities.meshToDelete.length = 0;
   }
+
+  flightByCircleOrbitCubeSystem() {
+    const archetypePartition = this.getArchetypePartitionByStrictComponentsMask([
+      componentTypeToBitMask.mesh,
+      componentTypeToBitMask.radius,
+    ]);
+
+    const componentsIndexes = archetypePartition[1];
+    const entityLength = archetypePartition[2];
+
+    const meshComponentIndex = componentsIndexes[componentTypeToBitMask.mesh];
+    const radiusComponentIndex = componentsIndexes[componentTypeToBitMask.radius];
+
+    const quaternionNew = new Quaternion();
+    const vector3Tmp = new Vector3();
+
+    for (let i = this.partitionDefaultsOffset; i < archetypePartition.length; i += entityLength) {
+      const mesh = archetypePartition[i + meshComponentIndex] as Mesh;
+      const radius = archetypePartition[i + radiusComponentIndex] as {x: number; y: number};
+
+      vector3Tmp.set(radius.x, radius.y, 0);
+      quaternionNew.setFromAxisAngle(this.normalizedVector3Y, Math.PI * 0.01);
+      vector3Tmp.applyQuaternion(quaternionNew);
+      vector3Tmp.add(mesh.position);
+      quaternionNew.setFromAxisAngle(this.normalizedVector3X, Math.PI * 0.01);
+      mesh.quaternion.multiply(quaternionNew);
+
+      mesh.position.set(vector3Tmp.x, vector3Tmp.y, vector3Tmp.z);
+    }
+  }
 }
+
+export const createRandomRadiusCircleOrbit = (): {
+  x: number;
+  y: number;
+} => {
+  const radius = Math.random() * 0.5;
+  const angle = Math.random() * Math.PI * 0.5;
+
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+  };
+};

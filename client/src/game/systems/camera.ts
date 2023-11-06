@@ -8,17 +8,17 @@ export const cameraSystem = function (this: ClientWorld, timeElapsedS: number) {
     componentTypeToBitMask.keys,
     componentTypeToBitMask.mesh,
   ]);
-  const componentsIndexes = archetypePartition[0];
 
-  for (let i = this.archetypePartitionStartIndex; i < archetypePartition.length; i++) {
+  const componentsIndexes = archetypePartition[1];
+  const entityLength = archetypePartition[2];
+
+  const keysComponentIndex = componentsIndexes[componentTypeToBitMask.keys];
+  const meshComponentIndex = componentsIndexes[componentTypeToBitMask.mesh];
+
+  for (let i = this.partitionDefaultsOffset; i < archetypePartition.length; i += entityLength) {
     const idealOffset = new THREE.Vector3(0, 3, 10);
-    const input = archetypePartition[i][
-      componentsIndexes[componentTypeToBitMask.keys]
-    ] as ControlsValue;
-
-    const mesh = archetypePartition[i][
-      componentsIndexes[componentTypeToBitMask.mesh]
-    ] as THREE.Mesh;
+    const input = archetypePartition[i + keysComponentIndex] as ControlsValue;
+    const mesh = archetypePartition[i + meshComponentIndex] as THREE.Mesh;
 
     if (input.axis1Side) {
       idealOffset.lerp(new THREE.Vector3(2 * input.axis1Side, 4, 10), Math.abs(input.axis1Side));

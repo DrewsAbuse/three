@@ -14,10 +14,10 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
+    minify: true,
     rollupOptions: {
       input: {
-        main: resolve(root, 'index.html'),
-        nested: resolve(root, 'game', 'index.html'),
+        main: resolve(root, 'game', 'index.html'),
       },
     },
   },

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type {ControlsValue} from '../keys-input.ts';
 import type {Vector3} from 'three';
-import type {EntityArray, World} from '../ecs.ts';
+import type {World} from '../ecs.ts';
 import {componentTypeToBitMask} from '../component.ts';
 import {negativeClamp} from '../helpers';
 
@@ -13,23 +13,24 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
     componentTypeToBitMask.acceleration,
     componentTypeToBitMask.decceleration,
   ]);
-  const componentsIndexes = archetypePartition[0];
+  const componentsIndexes = archetypePartition[1];
+  const entityLength = archetypePartition[2];
 
   const vector3Tmp = new THREE.Vector3(0, 0, 0);
   vector3Tmp.multiplyScalar(timeElapsedS);
 
-  for (let i = 1; i < archetypePartition.length; i++) {
-    const entityArray = archetypePartition[i] as EntityArray;
+  const keysComponentOffset = componentsIndexes[componentTypeToBitMask.keys];
+  const meshComponentOffset = componentsIndexes[componentTypeToBitMask.mesh];
+  const velocityComponentOffset = componentsIndexes[componentTypeToBitMask.velocity];
+  const accelerationComponentOffset = componentsIndexes[componentTypeToBitMask.acceleration];
+  const deccelerationComponentOffset = componentsIndexes[componentTypeToBitMask.decceleration];
 
-    const input = entityArray[componentsIndexes[componentTypeToBitMask.keys]] as ControlsValue;
-    const mesh = entityArray[componentsIndexes[componentTypeToBitMask.mesh]] as THREE.Mesh;
-    const velocity = entityArray[componentsIndexes[componentTypeToBitMask.velocity]] as Vector3;
-    const deacceleration = entityArray[
-      componentsIndexes[componentTypeToBitMask.decceleration]
-    ] as Vector3;
-    const acceleration = entityArray[
-      componentsIndexes[componentTypeToBitMask.acceleration]
-    ] as Vector3;
+  for (let i = this.partitionDefaultsOffset; i < archetypePartition.length; i += entityLength) {
+    const input = archetypePartition[i + keysComponentOffset] as ControlsValue;
+    const mesh = archetypePartition[i + meshComponentOffset] as THREE.Mesh;
+    const velocity = archetypePartition[i + velocityComponentOffset] as Vector3;
+    const deacceleration = archetypePartition[i + accelerationComponentOffset] as Vector3;
+    const acceleration = archetypePartition[i + deccelerationComponentOffset] as Vector3;
 
     const frameDeacceleration = new THREE.Vector3(
       velocity.x * deacceleration.x,
@@ -38,7 +39,7 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
     );
     frameDeacceleration.multiplyScalar(timeElapsedS);
     velocity.add(frameDeacceleration);
-    velocity.z = negativeClamp(Math.abs(velocity.z), 0.5, 125.0);
+    velocity.z = negativeClamp(Math.abs(velocity.z), 5, 150);
 
     const entityQuaternionClone = mesh.quaternion.clone();
     const entityPositionClone = mesh.position.clone();
@@ -50,6 +51,7 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
     const acc = acceleration.clone();
 
     if (input.shift) {
+      acc.z = -0.05;
       acc.multiplyScalar(2.0);
     }
 
@@ -77,7 +79,7 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
     sideways.applyQuaternion(entityQuaternionClone);
     sideways.normalize();
 
-    forward.multiplyScalar(velocity.z * timeElapsedS);
+    forward.multiplyScalar(acc.z + velocity.z * timeElapsedS);
     sideways.multiplyScalar(velocity.x * timeElapsedS);
 
     entityPositionClone.add(forward);
@@ -86,5 +88,10 @@ export const movementSystem = function (this: World, timeElapsedS: number) {
     mesh.position.set(entityPositionClone.x, entityPositionClone.y, entityPositionClone.z);
 
     mesh.quaternion.copy(entityQuaternionCloneClone);
+
+    archetypePartition[i + keysComponentOffset] = input;
+    archetypePartition[i + meshComponentOffset] = mesh;
+    archetypePartition[i + velocityComponentOffset] = velocity;
+    archetypePartition[i + deccelerationComponentOffset] = deacceleration;
   }
 };

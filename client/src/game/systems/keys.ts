@@ -8,8 +8,6 @@ export const inputSystem = function (this: ClientWorld) {
   this.controlsValue.shift = false;
 
   if (this.keySets.keySetDown.has('KeyW')) {
-    console.log(`KeyW`);
-
     this.controlsValue.axis1Forward = 1.0;
   }
 
@@ -32,11 +30,12 @@ export const inputSystem = function (this: ClientWorld) {
   const archetypePartition = this.getArchetypePartitionByComponentsMasks([
     componentTypeToBitMask.keys,
   ]);
-  const componentsBitMaskToIndex = archetypePartition[0];
+  const componentsBitMaskToIndex = archetypePartition[1];
+  const entityLength = archetypePartition[2];
 
-  for (let i = this.archetypePartitionStartIndex; i < archetypePartition.length; i++) {
-    (archetypePartition[i][
-      componentsBitMaskToIndex[componentTypeToBitMask.keys]
-    ] as ControlsValue) = this.controlsValue;
+  const keysComponentIndex = componentsBitMaskToIndex[componentTypeToBitMask.keys];
+
+  for (let i = this.partitionDefaultsOffset; i < archetypePartition.length; i += entityLength) {
+    (archetypePartition[i + keysComponentIndex] as ControlsValue) = this.controlsValue;
   }
 };

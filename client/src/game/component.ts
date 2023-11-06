@@ -21,6 +21,7 @@ export const componentTypeToBitMask = {
   acceleration: 128,
   decceleration: 256,
   camera: 512,
+  radius: 1024,
 } as const;
 
 type BitMaskToComponentType = Record<
@@ -38,6 +39,7 @@ export const bitMaskToComponentType: BitMaskToComponentType = {
   128: 'acceleration',
   256: 'decceleration',
   512: 'camera',
+  1024: 'radius',
 } as const;
 
 export type Data =
@@ -51,7 +53,11 @@ export type Data =
   | Vector2
   | Vector4
   | Vector
-  | Quaternion;
+  | Quaternion
+  | {
+      x: number;
+      y: number;
+    };
 
 type ExtractRecordValue<T> = T extends infer U ? U[keyof U] : never;
 
