@@ -13,12 +13,18 @@ import type {
 } from 'three';
 import type {KeysInput} from './singleton/input.ts';
 
-export class Component<T extends keyof typeof bitMaskToComponentLabel> {
-  public data: BitMaskToTypes[T];
+export class Component {
+  public data: ComponentData | SingletonComponentsData;
   type: ExtractRecordValue<typeof bitMaskToComponentLabel>;
   bitMask: keyof typeof bitMaskToComponentLabel;
 
-  constructor({data, bitMask}: {data: BitMaskToTypes[T]; bitMask: T}) {
+  constructor({
+    data,
+    bitMask,
+  }: {
+    data: ComponentData | SingletonComponentsData;
+    bitMask: keyof typeof bitMaskToComponentLabel;
+  }) {
     this.data = data;
     this.bitMask = bitMask;
     this.type = bitMaskToComponentLabel[this.bitMask];
@@ -56,7 +62,7 @@ export const bitMaskToComponentLabel: BitMaskToComponentLabel = {
 export type BitMaskToTypes = {
   2: KeysInput;
   4: Vector2;
-  8: Mesh | Group;
+  8: Mesh;
   16: MovementComponentData;
   32: boolean;
   64: CameraComponentData;
