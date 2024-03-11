@@ -1,5 +1,4 @@
 import {Color, Vector3} from 'three';
-import type {ControlsValue, KeysInput} from './keys-input.ts';
 import {
   composeInstancedMesh,
   createInstMeshWithRandPositionOffset,
@@ -19,8 +18,6 @@ export {
   createSkybox,
   WebGPURenderer,
 };
-
-export type {ControlsValue, KeysInput};
 
 export const getAutoIncrementIdGenerator = () => {
   let id = 0;
