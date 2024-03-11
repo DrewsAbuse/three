@@ -2,7 +2,9 @@ import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {GUI} from 'dat.gui';
 import type {BitMaskToTypes, BitMasks} from '../components';
+import type {EntityArray} from '../world';
 import {Component, bitMasks, keysInputComponent} from '../components';
+import {autoIncrementId} from '../helpers';
 
 const gltfLoader = new GLTFLoader();
 
@@ -15,7 +17,28 @@ const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf
 
 const gui = new GUI();
 
-export const createPlayer = () => {
+const bitMaskReducer = (
+  acc: number,
+  component: {
+    bitMask: number;
+  }
+) => acc | component.bitMask;
+const bitMaskComparator = (
+  a: {
+    bitMask: number;
+  },
+  b: {
+    bitMask: number;
+  }
+) => a.bitMask - b.bitMask;
+
+export type PlayerEntityCreation = ReturnType<typeof createPlayer>;
+
+export const createPlayer = (): {
+  componentsBitMask: number;
+  sortedBitMasks: number[];
+  entityArray: EntityArray;
+} => {
   const axisHelperMESH = new AxesHelper(50);
   axisHelperMESH.setColors(0xff0000, 0x00ff00, 0x0000ff);
 
@@ -73,5 +96,12 @@ export const createPlayer = () => {
     bitMask: bitMasks.camera,
   });
 
-  return [keysComponent, meshComponent, movementComponent, cameraComponent];
+  const components = [keysComponent, meshComponent, movementComponent, cameraComponent];
+  const sortedComponents = components.sort(bitMaskComparator);
+
+  return {
+    componentsBitMask: components.reduce(bitMaskReducer, 0),
+    sortedBitMasks: sortedComponents.map(component => component.bitMask),
+    entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
+  };
 };
