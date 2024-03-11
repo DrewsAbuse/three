@@ -43,7 +43,7 @@ export const createPlayer = () => {
       new Vector3(0, 0, -3),
       new Vector3(),
       new Vector3(2, 1, 4),
-      new Vector3(-30, -30, -20),
+      new Vector3(-4, -3, -12),
     ],
     bitMask: bitMasks.movement,
   });
