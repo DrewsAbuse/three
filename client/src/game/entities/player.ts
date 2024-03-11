@@ -46,15 +46,15 @@ export const createPlayer = () => {
   const accelerationFolder = playerMoveFolder.addFolder('Acceleration');
   const decelerationFolder = playerMoveFolder.addFolder('Deceleration');
 
-  accelerationFolder.add(moveData[2], 'z', 0, 10).name('acceleration');
+  accelerationFolder.add(moveData[2], 'z', 0, 10).name('forward');
   accelerationFolder.add(moveData[5], 'x', 0, 10).name('pitch');
   accelerationFolder.add(moveData[5], 'y', 0, 10).name('yaw');
   accelerationFolder.add(moveData[5], 'z', 0, 10).name('roll');
 
-  decelerationFolder.add(moveData[3], 'x', -10, 0).name('deceleration');
-  decelerationFolder.add(moveData[6], 'x', -20, 0).name('pitch deceleration');
-  decelerationFolder.add(moveData[6], 'y', -15, 0).name('yaw deceleration');
-  decelerationFolder.add(moveData[6], 'z', -40, 0).name('roll deceleration');
+  decelerationFolder.add(moveData[3], 'x', -10, 0).name('forward');
+  decelerationFolder.add(moveData[6], 'x', -20, 0).name('pitch');
+  decelerationFolder.add(moveData[6], 'y', -15, 0).name('yaw');
+  decelerationFolder.add(moveData[6], 'z', -40, 0).name('roll');
 
   const movementComponent = new Component({
     data: moveData,
