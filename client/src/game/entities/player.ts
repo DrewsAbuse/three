@@ -73,7 +73,7 @@ export const createPlayer = (): {
   accelerationFolder.add(moveData[5], 'y', 0, 10).name('yaw');
   accelerationFolder.add(moveData[5], 'z', 0, 10).name('roll');
 
-  decelerationFolder.add(moveData[3], 'x', -35, 0).name('forward');
+  decelerationFolder.add(moveData[3], 'z', -35, 0).name('forward');
   decelerationFolder.add(moveData[6], 'x', -20, 0).name('pitch');
   decelerationFolder.add(moveData[6], 'y', -15, 0).name('yaw');
   decelerationFolder.add(moveData[6], 'z', -40, 0).name('roll');
