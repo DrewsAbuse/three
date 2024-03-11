@@ -1,50 +1,58 @@
-import * as THREE from 'three';
-import type {ControlsValue} from '../keys-input.ts';
-import type {ClientWorld} from '../ecs.ts';
-import {componentTypeToBitMask} from '../component.ts';
+import type {ClientWorld} from '../world/client.ts';
+import type {BitMaskToTypes, BitMasks} from '../entities/components/component.ts';
+import {bitMasks} from '../entities/components/component.ts';
+import {partitionConstants} from '../world';
+import {System} from './index.ts';
 
-export const cameraSystem = function (this: ClientWorld, timeElapsedS: number) {
-  const archetypePartition = this.getArchetypePartitionByComponentsMasks([
-    componentTypeToBitMask.keys,
-    componentTypeToBitMask.mesh,
-  ]);
+export class CameraSystem extends System {
+  world: ClientWorld;
 
-  const componentsIndexes = archetypePartition[1];
-  const entityLength = archetypePartition[2];
-
-  const keysComponentIndex = componentsIndexes[componentTypeToBitMask.keys];
-  const meshComponentIndex = componentsIndexes[componentTypeToBitMask.mesh];
-
-  for (let i = this.partitionDefaultsOffset; i < archetypePartition.length; i += entityLength) {
-    const idealOffset = new THREE.Vector3(0, 3, 10);
-    const input = archetypePartition[i + keysComponentIndex] as ControlsValue;
-    const mesh = archetypePartition[i + meshComponentIndex] as THREE.Mesh;
-
-    if (input.axis1Side) {
-      idealOffset.lerp(new THREE.Vector3(2 * input.axis1Side, 4, 10), Math.abs(input.axis1Side));
-    }
-
-    if (input.axis1Forward < 0) {
-      idealOffset.lerp(
-        new THREE.Vector3(0, 4, 12 * -input.axis1Forward),
-        Math.abs(input.axis1Forward)
-      );
-    }
-
-    if (input.axis1Forward > 0) {
-      idealOffset.lerp(
-        new THREE.Vector3(0, 4, 15 * input.axis1Forward),
-        Math.abs(input.axis1Forward)
-      );
-    }
-
-    idealOffset.applyQuaternion(mesh.quaternion);
-    idealOffset.add(mesh.position);
-
-    const t1 = 1.0 - Math.pow(0.05, timeElapsedS);
-    const t2 = 1.0 - Math.pow(0.01, timeElapsedS);
-
-    this.camera.position.lerp(idealOffset, t1);
-    this.camera.quaternion.slerp(mesh.quaternion, t2);
+  constructor(world: ClientWorld) {
+    super({
+      requiredComponents: [bitMasks.keysInput, bitMasks.camera],
+    });
+    this.world = world;
   }
-};
+
+  update({timeElapsedS}: {timeElapsedS: number}) {
+    const archetypePartition = this.world.getArchetypePartitionByComponentsMasks(
+      this.requiredComponents
+    );
+
+    if (archetypePartition === undefined) {
+      return;
+    }
+
+    const lastEntityIndex = archetypePartition[partitionConstants.lastInsertedIndex];
+    const componentsIndexes = archetypePartition[partitionConstants.componentsIndexesOffset];
+    const entityLength = archetypePartition[partitionConstants.entityLengthOffset];
+
+    const cameraIndex = componentsIndexes[bitMasks.camera];
+    const meshIndex = componentsIndexes[bitMasks.mesh];
+
+    for (let i = partitionConstants.entityLengthOffset; i < lastEntityIndex; i += entityLength) {
+      const mesh = archetypePartition[i + meshIndex] as BitMaskToTypes[BitMasks['mesh']];
+      const cameraSettings = archetypePartition[
+        i + cameraIndex
+      ] as BitMaskToTypes[BitMasks['camera']];
+
+      //console.log('cameraSettings', cameraSettings.lookAt);
+
+      //Smoothing rate dictates the proportion of source remaining after one second Math.pow(X, timeElapsedS)
+      const t1 = 1.0 - Math.pow(0.5, timeElapsedS * cameraSettings.lerpCoefficient);
+      this.world.camera.position.lerp(
+        cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
+        t1
+      );
+
+      const t2 = 1.0 - Math.pow(0.5, timeElapsedS * cameraSettings.slerpCoefficient);
+      this.world.camera.quaternion.slerp(mesh.quaternion, t2);
+
+      cameraSettings.idealOffset.set(
+        cameraSettings.position.x,
+        cameraSettings.position.y,
+        cameraSettings.position.z
+      );
+    }
+  }
+}

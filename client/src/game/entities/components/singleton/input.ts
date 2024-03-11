@@ -1,20 +1,12 @@
-export type ControlsValue = {
-  axis1Forward: number;
-  axis1Side: number;
-  pageUp: boolean;
-  pageDown: boolean;
-  space: boolean;
-  shift: boolean;
-  backspace: boolean;
-};
+import {Component, bitMasks} from '../component.ts';
 
 export type KeysInput = {
-  keySetDown: Set<string>;
+  keyDownToBoolMap: Map<string, boolean>;
   keySetUpdateId: [number];
 };
 
-export const getKeysSet = (): KeysInput => {
-  const keySetDown = new Set<string>();
+const keysInput = ((): KeysInput => {
+  const keyDownToBoolMap = new Map<string, boolean>();
   const keySetUpdateId: [number] = [0];
 
   const keyDown = (e: KeyboardEvent) => {
@@ -22,20 +14,23 @@ export const getKeysSet = (): KeysInput => {
       return;
     }
     keySetUpdateId[0] += 1;
-    keySetDown.add(e.code);
+    keyDownToBoolMap.set(e.code, true);
   };
 
   const keyUp = (e: KeyboardEvent) => {
-    if (keySetDown.delete(e.code)) {
-      keySetUpdateId[0] += 1;
-    }
+    keyDownToBoolMap.set(e.code, false);
   };
 
   document.addEventListener('keydown', keyDown);
   document.addEventListener('keyup', keyUp);
 
-  return {keySetDown, keySetUpdateId};
-};
+  return {keyDownToBoolMap, keySetUpdateId};
+})();
+
+export const keysInputComponent = new Component({
+  bitMask: bitMasks.keysInput,
+  data: keysInput,
+});
 
 export const getMousePosition = () => {
   const mousePosition = {x: 0, y: 0};

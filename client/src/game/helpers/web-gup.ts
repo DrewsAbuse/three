@@ -3,11 +3,9 @@ import {WebGLRenderer} from 'three';
 export class WebGPURenderer extends WebGLRenderer {
   context:
     | (WebGLRenderingContext & {
-        // @ts-ignore
         gpu?: GPUDevice;
       })
     | (WebGL2RenderingContext & {
-        // @ts-ignore
         gpu?: GPUDevice;
       });
 

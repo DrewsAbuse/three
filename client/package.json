@@ -10,10 +10,11 @@
   },
   "prettier": "@shelf/prettier-config",
   "devDependencies": {
-    "@webgpu/types": "^0.1.38",
     "@shelf/eslint-config": "3.10.0",
     "@shelf/prettier-config": "1.0.0",
-    "@types/three": "0.158.1",
+    "@types/dat.gui": "^0.7.12",
+    "@types/three": "0.159.0",
+    "@webgpu/types": "^0.1.38",
     "eslint": "8.36.0",
     "prettier": "3.0.3",
     "typescript": "5.0.2",
@@ -21,6 +22,8 @@
     "vite-plugin-vercel": "2.0.0"
   },
   "dependencies": {
-    "three": "0.158.0"
+    "dat.gui": "^0.7.9",
+    "stats.js": "0.17.0",
+    "three": "0.159.0"
   }
 }
