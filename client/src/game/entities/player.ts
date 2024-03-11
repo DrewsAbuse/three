@@ -13,7 +13,7 @@ import {keysInputComponent} from './components/singleton/input.ts';
 
 const gltfLoader = new GLTFLoader();
 
-const model = await gltfLoader.loadAsync('./public/models/star_fox/scene.gltf').then(gltf => {
+const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
   gltf.scene.scale.set(12, 12, 12);
   gltf.scene.rotateY(Math.PI);
 
