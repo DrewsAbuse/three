@@ -1,13 +1,7 @@
-import {
-  AxesHelper,
-  BoxGeometry,
-  Mesh,
-  MeshBasicMaterial,
-  Object3D,
-  Quaternion,
-  Vector3,
-} from 'three';
+import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {GUI} from 'dat.gui';
+import type {BitMaskToTypes, BitMasks} from './components/component.ts';
 import {Component, bitMasks} from './components/component.ts';
 import {keysInputComponent} from './components/singleton/input.ts';
 
@@ -20,31 +14,50 @@ const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf
   return gltf.scene;
 });
 
-export const createPlayer = () => {
-  const axesHelperMESH = new AxesHelper(50);
-  axesHelperMESH.setColors(0xff0000, 0x00ff00, 0x0000ff);
+const gui = new GUI();
 
-  const mesh = new Mesh(
-    new BoxGeometry(45, 15, 45),
-    new MeshBasicMaterial({color: 0x00ff00, wireframe: true})
-  );
+export const createPlayer = () => {
+  const axisHelperMESH = new AxesHelper(50);
+  axisHelperMESH.setColors(0xff0000, 0x00ff00, 0x0000ff);
+
+  const mesh = new Mesh();
   mesh.add(model);
-  mesh.add(axesHelperMESH);
+  mesh.add(axisHelperMESH);
+
+  gui.add(axisHelperMESH, 'visible').name('Axis Helper');
 
   const meshComponent = new Component({
     data: mesh,
     bitMask: bitMasks.mesh,
   });
+
+  const moveData: BitMaskToTypes[BitMasks['movement']] = [
+    'air-craft',
+    new Vector3(),
+    new Vector3(0, 0, 2),
+    new Vector3(0, 0, -3),
+    new Vector3(),
+    new Vector3(2, 1, 4),
+    new Vector3(-4, -3, -12),
+  ];
+
+  //TODO: Add separate GUI SYSTEM
+  const playerMoveFolder = gui.addFolder('Player Movement');
+  const accelerationFolder = playerMoveFolder.addFolder('Acceleration');
+  const decelerationFolder = playerMoveFolder.addFolder('Deceleration');
+
+  accelerationFolder.add(moveData[2], 'z', 0, 10).name('acceleration');
+  accelerationFolder.add(moveData[5], 'x', 0, 10).name('pitch');
+  accelerationFolder.add(moveData[5], 'y', 0, 10).name('yaw');
+  accelerationFolder.add(moveData[5], 'z', 0, 10).name('roll');
+
+  decelerationFolder.add(moveData[3], 'x', -10, 0).name('deceleration');
+  decelerationFolder.add(moveData[6], 'x', -20, 0).name('pitch deceleration');
+  decelerationFolder.add(moveData[6], 'y', -15, 0).name('yaw deceleration');
+  decelerationFolder.add(moveData[6], 'z', -40, 0).name('roll deceleration');
+
   const movementComponent = new Component({
-    data: [
-      'air-craft',
-      new Vector3(),
-      new Vector3(0, 0, 2),
-      new Vector3(0, 0, -3),
-      new Vector3(),
-      new Vector3(2, 1, 4),
-      new Vector3(-4, -3, -12),
-    ],
+    data: moveData,
     bitMask: bitMasks.movement,
   });
   const keysComponent = keysInputComponent;
