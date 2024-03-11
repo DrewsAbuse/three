@@ -17,7 +17,7 @@ export default defineConfig({
     minify: true,
     rollupOptions: {
       input: {
-        main: resolve(root, 'game', 'index.html'),
+        main: resolve(root, 'index.html'),
       },
     },
   },
