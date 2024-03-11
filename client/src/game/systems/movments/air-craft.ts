@@ -1,7 +1,7 @@
 import {Quaternion, Vector3} from 'three';
 import type {Mesh} from 'three';
-import type {KeysInput} from '../../entities/components/singleton/input.ts';
 import type {RequiredComponents} from '../index.ts';
+import type {KeysInput} from '../../components';
 import {System} from '../index.ts';
 import {normalizedVec3} from '../../helpers';
 

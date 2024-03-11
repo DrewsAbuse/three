@@ -1,12 +1,12 @@
 import {Group, Matrix4, Mesh, PerspectiveCamera, Quaternion, Vector3} from 'three';
 import type {WebGPURenderer} from '../helpers';
 import type {InstancedMesh, Scene, WebGLRenderer} from 'three';
-import type {Component} from '../entities/components/component.ts';
+import type {Component} from '../components/component.ts';
 import {createSkybox} from '../helpers';
-import {bitMasks} from '../entities/components/component.ts';
+import {bitMasks} from '../components/component.ts';
 import {CameraSystem} from '../systems/camera.ts';
 import {stats} from '../window.ts';
-import {World, partitionConstants} from './';
+import {World, partitionConstants} from './base.ts';
 
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;

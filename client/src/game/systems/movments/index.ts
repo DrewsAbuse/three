@@ -1,8 +1,7 @@
 import type {ArchetypePartition} from '../../world';
-import type {BitMaskToTypes, BitMasks} from '../../entities/components/component.ts';
-import {movementComponentDataIndexes} from '../../entities/components/component.ts';
+import type {BitMaskToTypes, BitMasks} from '../../components';
 import {partitionConstants} from '../../world';
-import {bitMasks} from '../../entities/components/component.ts';
+import {bitMasks, movementComponentDataIndexes} from '../../components';
 import {AriCraftMovementSystem} from './air-craft.ts';
 
 const SYSTEM_REQUIRED_COMPONENTS = [

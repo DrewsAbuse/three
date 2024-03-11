@@ -1,9 +1,8 @@
 import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {GUI} from 'dat.gui';
-import type {BitMaskToTypes, BitMasks} from './components/component.ts';
-import {Component, bitMasks} from './components/component.ts';
-import {keysInputComponent} from './components/singleton/input.ts';
+import type {BitMaskToTypes, BitMasks} from '../components';
+import {Component, bitMasks, keysInputComponent} from '../components';
 
 const gltfLoader = new GLTFLoader();
 

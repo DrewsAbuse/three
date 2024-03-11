@@ -1,6 +1,6 @@
 import type {ClientWorld} from '../world/client.ts';
-import type {BitMaskToTypes, BitMasks} from '../entities/components/component.ts';
-import {bitMasks} from '../entities/components/component.ts';
+import type {BitMaskToTypes, BitMasks} from '../components/component.ts';
+import {bitMasks} from '../components/component.ts';
 import {partitionConstants} from '../world';
 import {System} from './index.ts';
 

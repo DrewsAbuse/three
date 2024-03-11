@@ -1,4 +1,4 @@
-import type {ExtractRecordValue, bitMasks} from '../entities/components/component.ts';
+import type {ExtractRecordValue, bitMasks} from '../components/component.ts';
 
 export type RequiredComponents = readonly ExtractRecordValue<typeof bitMasks>[];
 

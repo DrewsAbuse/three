@@ -11,7 +11,7 @@ import type {
   Vector3,
   Vector4,
 } from 'three';
-import type {KeysInput} from './singleton/input.ts';
+import type {KeysInput} from './';
 
 export class Component {
   public data: ComponentData | SingletonComponentsData;
