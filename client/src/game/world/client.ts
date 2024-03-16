@@ -1,10 +1,11 @@
 import {Group, Matrix4, Mesh, PerspectiveCamera, Quaternion, Vector3} from 'three';
 import type {WebGPURenderer} from '../helpers';
 import type {InstancedMesh, Scene, WebGLRenderer} from 'three';
-import type {Component} from '../components/component.ts';
+import type {Component} from '../components';
+import type {EntityArray} from './base.ts';
 import {createSkybox} from '../helpers';
-import {bitMasks} from '../components/component.ts';
-import {CameraSystem} from '../systems/camera.ts';
+import {bitMasks} from '../components';
+import {CameraSystem} from '../systems';
 import {stats} from '../window.ts';
 import {World, partitionConstants} from './base.ts';
 
@@ -90,18 +91,21 @@ export class ClientWorld extends World {
     });
   };
 
-  createEntityAndAddToScene(components: Component[]) {
-    this.createEntity(components);
-    const meshComponent = components.find(
-      component =>
-        component.bitMask === bitMasks.mesh || component.bitMask === bitMasks.instancedMesh
+  createEntityAndAddToScene(params: {
+    componentsBitMask: number;
+    entityArray: EntityArray;
+    sortedBitMasks: number[];
+  }) {
+    this.createEntity(params);
+    const meshComponentIndex = params.sortedBitMasks.findIndex(
+      bitMask => bitMask === bitMasks.mesh || bitMask === bitMasks.instancedMesh
     );
 
-    if (meshComponent === undefined) {
+    if (meshComponentIndex === undefined) {
       throw new Error(`meshComponent not found`);
     }
 
-    this.sceneEntities.addMesh(meshComponent.data);
+    this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
   }
 
   runSystemsFixedUpdate(timeElapsed: number) {
@@ -120,7 +124,7 @@ export class ClientWorld extends World {
         ),
       });
       this.cameraSystem.update({timeElapsedS});
-      //this.particlesSnackLoopSystem(timeElapsedS);
+      this.particlesSnackLoopSystem(timeElapsedS);
     }
   }
 
@@ -149,13 +153,13 @@ export class ClientWorld extends World {
   particlesSnackLoopSystem(timeElapsedS: number) {
     const archetypePartition = this.getArchetypePartitionByStrictComponentsMask([
       bitMasks.instancedMesh,
-      bitMasks.eventsContainer,
     ]);
 
     if (archetypePartition === undefined) {
       return;
     }
 
+    const lastEntityIndex = archetypePartition[0];
     const componentIndexes = archetypePartition[1];
     const entityLength = archetypePartition[2];
 
@@ -173,11 +177,7 @@ export class ClientWorld extends World {
 
     const multiplier = 10;
 
-    for (
-      let i = partitionConstants.entityStartOffset;
-      i < archetypePartition.length;
-      i += entityLength
-    ) {
+    for (let i = partitionConstants.entityLengthOffset; i < lastEntityIndex; i += entityLength) {
       const instancedMesh = archetypePartition[i + instanceMatrixIndex] as InstancedMesh;
 
       for (let j = 0; j < instancedMesh.count - 1; j++) {

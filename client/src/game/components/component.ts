@@ -13,18 +13,12 @@ import type {
 } from 'three';
 import type {KeysInput} from './';
 
-export class Component {
-  public data: ComponentData | SingletonComponentsData;
+export class Component<T extends BitMaskKeys = BitMaskKeys> {
+  public data: BitMaskToTypes[T];
   type: ExtractRecordValue<typeof bitMaskToComponentLabel>;
   bitMask: keyof typeof bitMaskToComponentLabel;
 
-  constructor({
-    data,
-    bitMask,
-  }: {
-    data: ComponentData | SingletonComponentsData;
-    bitMask: keyof typeof bitMaskToComponentLabel;
-  }) {
+  constructor({data, bitMask}: {data: BitMaskToTypes[T]; bitMask: T}) {
     this.data = data;
     this.bitMask = bitMask;
     this.type = bitMaskToComponentLabel[this.bitMask];
@@ -59,6 +53,8 @@ export const bitMaskToComponentLabel: BitMaskToComponentLabel = {
   256: 'instancedMesh',
 } as const;
 
+type BitMaskKeys = keyof typeof bitMaskToComponentLabel;
+
 export type BitMaskToTypes = {
   2: KeysInput;
   4: Vector2;
@@ -66,8 +62,9 @@ export type BitMaskToTypes = {
   16: MovementComponentData;
   32: boolean;
   64: CameraComponentData;
-  128: 'eventsContainer';
-  256: 'instancedMesh';
+  //128: 'eventsContainer';
+  256: InstancedMesh;
+  [key: number]: ComponentData | SingletonComponentsData;
 };
 
 export type CameraComponentData = {
@@ -102,6 +99,7 @@ export const movementComponentDataIndexes = {
 export type SingletonComponentsData = KeysInput;
 
 export type ComponentData =
+  | KeysInput
   | MovementComponentData
   | CameraComponentData
   | boolean

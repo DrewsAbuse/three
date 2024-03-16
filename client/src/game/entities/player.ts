@@ -1,11 +1,12 @@
 import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {GUI} from 'dat.gui';
+import dat from 'dat.gui';
 import type {BitMaskToTypes, BitMasks} from '../components';
 import type {EntityArray} from '../world';
 import {Component, bitMasks, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
 
+const gui = new dat.GUI();
 const gltfLoader = new GLTFLoader();
 
 const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
@@ -14,8 +15,6 @@ const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf
 
   return gltf.scene;
 });
-
-const gui = new GUI();
 
 const bitMaskReducer = (
   acc: number,
@@ -45,8 +44,6 @@ export const createPlayer = (): {
   const mesh = new Mesh();
   mesh.add(model);
   mesh.add(axisHelperMESH);
-
-  gui.add(axisHelperMESH, 'visible').name('Axis Helper');
 
   const meshComponent = new Component({
     data: mesh,

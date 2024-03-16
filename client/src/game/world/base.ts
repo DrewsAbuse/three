@@ -1,21 +1,16 @@
-import type {Component, ComponentData} from '../components';
-import {getAutoIncrementIdGenerator} from '../helpers';
-import {MovementsSystemRunner} from '../systems/movments';
+import type {ComponentData} from '../components';
+import {autoIncrementId} from '../helpers';
+import {MovementsSystemRunner} from '../systems';
 
 type IsEntityDeleted = 0 | 1;
 type IsEntityDirty = 0 | 1;
-type EntityComponentsBitMask = number;
-export type EntityArray = [
-  IsEntityDeleted,
-  IsEntityDirty,
-  EntityComponentsBitMask,
-  ...ComponentData[],
-];
+type EntityId = number;
+export type EntityArray = [EntityId, IsEntityDeleted, IsEntityDirty, ...ComponentData[]];
 type ComponentsIndexesOffset = Record<number, number>;
-type LastInsertedIndex = number;
+type CurrentFilledIndex = number; //Must be used for swapping elements instead of delete and concatenation
 type EntityLength = number;
 type TwoDimensionalArray = [
-  LastInsertedIndex,
+  CurrentFilledIndex,
   ComponentsIndexesOffset,
   EntityLength,
   ...EntityArray,
@@ -30,7 +25,7 @@ type MapComponentsMaskToArchetype = Map<
   }
 >;
 export const partitionConstants = {
-  lastInsertedIndex: 0,
+  lastNotDeletedEntityIndex: 0,
   componentsIndexesOffset: 1,
   entityLengthOffset: 2,
   entityStartOffset: 3,
@@ -38,8 +33,14 @@ export const partitionConstants = {
 
 export abstract class World {
   //Entity
-  entityAutoIncrementId = getAutoIncrementIdGenerator();
+  entityAutoIncrementId = autoIncrementId;
   mapComponentsMaskToArchetype: MapComponentsMaskToArchetype = new Map();
+  archetypes: {
+    componentsBitMaskToPartitionIndex: Map<number, number>;
+    entityIdToIndex: Map<number, number>;
+    twoDimensionalArray: TwoDimensionalArray;
+  }[] = [];
+  mapComponentsMaskToArchetypeIndex: Map<number, number> = new Map();
   mapComponentMaskToArchetypeMask: Map<number, number> = new Map();
   mapEntityIdTomapComponentsMask: Map<number, number> = new Map();
 
@@ -58,52 +59,87 @@ export abstract class World {
     this.movementsSystemRunner = new MovementsSystemRunner();
   }
 
-  createEntity(components: Component[]) {
-    const componentsBitMask = components.reduce((acc, component) => acc | component.bitMask, 0);
-    const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
-    const entityId = this.entityAutoIncrementId();
+  reBalanceArchetype(componentsBitMask: number) {
+    const archetypeNarrow = this.mapComponentsMaskToArchetype.get(componentsBitMask)!;
 
+    for (const [componentsBitMaskWide, archetypeWide] of this.mapComponentsMaskToArchetype) {
+      console.log(
+        `Rebalance ${componentsBitMaskWide} & ${componentsBitMask}`,
+        componentsBitMaskWide & componentsBitMask
+      );
+
+      const bitWise = componentsBitMaskWide & componentsBitMask;
+
+      if (bitWise !== componentsBitMaskWide && bitWise !== 0) {
+        //const index = archetypeWide.componentsBitMaskToPartitionIndex.get(componentsBitMask);
+        for (const [maskNarrow, indexNarrow] of archetypeNarrow.componentsBitMaskToPartitionIndex) {
+          archetypeWide.componentsBitMaskToPartitionIndex.set(
+            maskNarrow,
+            archetypeWide.twoDimensionalArray.length
+          );
+          archetypeWide.twoDimensionalArray.push(archetypeNarrow.twoDimensionalArray[indexNarrow]);
+        }
+      }
+    }
+  }
+
+  createEntity({
+    componentsBitMask,
+    entityArray,
+    sortedBitMasks,
+  }: {
+    componentsBitMask: number;
+    entityArray: EntityArray;
+    sortedBitMasks: number[];
+  }) {
     let isArchetypeFound = false;
+    const entityId = entityArray[0];
+    const entityLength = entityArray.length;
 
-    this.mapComponentsMaskToArchetype.forEach((archetype, archetypeKeyComponentsMask) => {
-      if ((archetypeKeyComponentsMask & componentsBitMask) === archetypeKeyComponentsMask) {
+    for (const [archetypeKeyComponentsMask, archetypeIndex] of this
+      .mapComponentsMaskToArchetypeIndex) {
+      const bitWise = componentsBitMask & archetypeKeyComponentsMask;
+
+      const isWiderArchetypeMaskPassed = bitWise !== componentsBitMask && bitWise !== 0;
+
+      if (isWiderArchetypeMaskPassed) {
+        this.mapComponentsMaskToArchetypeIndex.delete(archetypeKeyComponentsMask);
+        this.mapComponentsMaskToArchetypeIndex.set(componentsBitMask, archetypeIndex);
+      }
+
+      if (
+        (archetypeKeyComponentsMask | componentsBitMask) === archetypeKeyComponentsMask ||
+        isWiderArchetypeMaskPassed
+      ) {
         isArchetypeFound = true;
+        const archetype = this.archetypes[archetypeIndex];
 
         const archetypePartitionIndex =
           archetype.componentsBitMaskToPartitionIndex.get(componentsBitMask);
 
+        //Fill existing partition
         if (archetypePartitionIndex !== undefined) {
           const partition = archetype.twoDimensionalArray[archetypePartitionIndex];
 
           let lastInsertIndex = partition[0];
-
           this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
 
           lastInsertIndex += 1;
-          partition[lastInsertIndex] = entityId;
           archetype.entityIdToIndex.set(entityId, lastInsertIndex);
 
-          lastInsertIndex += 1;
-          partition[lastInsertIndex] = this.isDeletedInit;
-
-          lastInsertIndex += 1;
-          partition[lastInsertIndex] = this.isDirtyInit;
-          //partition[++lastInsertIndex] = componentsBitMask;
-
-          for (let i = 0; i < sortedComponents.length; i++) {
-            const {data} = sortedComponents[i];
-            lastInsertIndex += 1;
-            partition[lastInsertIndex] = data;
+          for (let i = 0; i < entityArray.length; i++) {
+            partition[lastInsertIndex + i] = entityArray[i];
           }
 
-          partition[0] = lastInsertIndex;
+          partition[0] = lastInsertIndex + entityLength - 1;
+
+          //console.log('Fill partition', partition);
 
           return;
         }
 
-        let currentInsertIndex = this.partitionStartIndex;
-        const entityLength = this.partitionStartIndex + sortedComponents.length;
-
+        //Create new partition
+        const currentInsertIndex = this.partitionStartIndex;
         const partition = new Array<Record<number, number> | ComponentData>(
           this.partitionStartIndex + entityLength
         );
@@ -112,87 +148,79 @@ export abstract class World {
         const componentsBitMaskToIndex: Record<number, number> = {};
         let partialComponentsBitMask = 0;
 
-        currentInsertIndex += 1;
-        partition[currentInsertIndex] = entityId;
         archetype.entityIdToIndex.set(entityId, currentInsertIndex);
 
-        currentInsertIndex += 1;
-        partition[currentInsertIndex] = this.isDeletedInit;
-
-        currentInsertIndex += 1;
-        partition[currentInsertIndex] = this.isDirtyInit;
-
-        for (let i = 0; i < sortedComponents.length; i++) {
-          const {bitMask, data} = sortedComponents[i];
-
-          currentInsertIndex += 1;
-          partition[currentInsertIndex] = data;
+        for (let i = 0; i < sortedBitMasks.length; i++) {
+          const bitMask = sortedBitMasks[i];
           partialComponentsBitMask = this.setMapComponentsMaskToArchetype(
             i,
             bitMask,
-            sortedComponents,
+            sortedBitMasks,
             partialComponentsBitMask,
             componentsBitMask,
             componentsBitMaskToIndex
           );
         }
 
-        partition[0] = currentInsertIndex;
         partition[1] = componentsBitMaskToIndex;
         partition[2] = entityLength;
+
+        for (let i = 0; i < entityArray.length; i++) {
+          partition[currentInsertIndex + i] = entityArray[i];
+        }
+
+        //TODO - Fix this magic negative one
+        partition[0] = currentInsertIndex + entityLength - 1;
+
+        // console.log('New partition', partition);
 
         archetype.componentsBitMaskToPartitionIndex.set(
           componentsBitMask,
           archetype.twoDimensionalArray.push(partition as TwoDimensionalArray[number]) - 1
         );
+        break;
       }
-    });
+    }
 
     if (!isArchetypeFound) {
       this.createArchetype({
         componentsBitMask,
-        components: sortedComponents,
+        entityArray,
+        sortedBitMasks,
       });
     }
+
+    //console.log('isArchetypeFound', isArchetypeFound);
   }
 
   createArchetype({
     componentsBitMask,
-    components: sortedComponents,
+    entityArray,
+    sortedBitMasks,
   }: {
-    components: Component[];
     componentsBitMask: number;
+    entityArray: EntityArray;
+    sortedBitMasks: number[];
   }) {
-    let currentInsertIndex = this.partitionStartIndex;
-    const entityLength = this.partitionStartIndex + sortedComponents.length;
+    const currentInsertIndex = this.partitionStartIndex;
+    const entityLength = entityArray.length;
 
     const twoDimensionalArray = [
       new Array<Record<number, number> | ComponentData>(this.partitionStartIndex + entityLength),
     ];
-    const entityId = this.entityAutoIncrementId();
-
+    const entityId = entityArray[0];
     this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
 
     const componentsBitMaskToIndex: Record<number, number> = {};
-
-    twoDimensionalArray[0][currentInsertIndex] = entityId;
     const entityIdToIndex = new Map([[entityId, currentInsertIndex]]);
 
-    currentInsertIndex += 1;
-    twoDimensionalArray[0][currentInsertIndex] = this.isDeletedInit;
-
-    currentInsertIndex += 1;
-    twoDimensionalArray[0][currentInsertIndex] = this.isDirtyInit;
-
     let partialComponentsBitMask = 0;
-    for (let i = 0; i < sortedComponents.length; i++) {
-      const {bitMask, data} = sortedComponents[i];
-      currentInsertIndex += 1;
-      twoDimensionalArray[0][currentInsertIndex] = data;
+    for (let i = 0; i < sortedBitMasks.length; i++) {
+      const bitMask = sortedBitMasks[i];
       partialComponentsBitMask = this.setMapComponentsMaskToArchetype(
         i,
         bitMask,
-        sortedComponents,
+        sortedBitMasks,
         partialComponentsBitMask,
         componentsBitMask,
         componentsBitMaskToIndex
@@ -200,35 +228,53 @@ export abstract class World {
     }
 
     //Set defaults
-    twoDimensionalArray[0][0] = currentInsertIndex;
     twoDimensionalArray[0][1] = componentsBitMaskToIndex;
     twoDimensionalArray[0][2] = entityLength;
 
-    this.mapComponentsMaskToArchetype.set(componentsBitMask, {
+    //Set entity
+    for (let i = 0; i < entityArray.length; i++) {
+      twoDimensionalArray[0][currentInsertIndex + i] = entityArray[i];
+    }
+
+    //TODO - Fix this magic negative one
+    twoDimensionalArray[0][0] = currentInsertIndex + entityLength - 1;
+
+    /**
+     * this.mapComponentsMaskToArchetype.set(componentsBitMask, {
+     *   twoDimensionalArray: twoDimensionalArray as TwoDimensionalArray,
+     *   entityIdToIndex,
+     *   componentsBitMaskToPartitionIndex: new Map([[componentsBitMask, 0]]),
+     * });
+     *
+     */
+
+    const length = this.archetypes.push({
       twoDimensionalArray: twoDimensionalArray as TwoDimensionalArray,
       entityIdToIndex,
       componentsBitMaskToPartitionIndex: new Map([[componentsBitMask, 0]]),
     });
 
-    console.log('twoDimensionalArray', twoDimensionalArray);
+    //console.log('New archetype', this.archetypes[length - 1]);
+
+    this.mapComponentsMaskToArchetypeIndex.set(componentsBitMask, length - 1);
   }
 
   setMapComponentsMaskToArchetype(
     index: number,
-    bitMask: number,
-    sortedComponents: Component[],
+    bitMaskI: number,
+    sortedBitMasks: number[],
     partialComponentsBitMask: number,
     componentsBitMask: number,
     componentsBitMaskToIndex: Record<number, number>
   ) {
-    componentsBitMaskToIndex[bitMask] = index + this.partitionEntityArraysStartIndex;
-    this.mapComponentMaskToArchetypeMask.set(bitMask, componentsBitMask);
+    componentsBitMaskToIndex[bitMaskI] = index + this.partitionEntityArraysStartIndex;
+    this.mapComponentMaskToArchetypeMask.set(bitMaskI, componentsBitMask);
 
-    partialComponentsBitMask |= bitMask;
+    partialComponentsBitMask |= bitMaskI;
     this.mapComponentMaskToArchetypeMask.set(partialComponentsBitMask, componentsBitMask);
-    for (let j = 0; j < sortedComponents.length; j++) {
-      const {bitMask: bitMaskTow} = sortedComponents[j];
-      this.mapComponentMaskToArchetypeMask.set(bitMask | bitMaskTow, componentsBitMask);
+    for (let j = 0; j < sortedBitMasks.length; j++) {
+      const bitMaskJ = sortedBitMasks[j];
+      this.mapComponentMaskToArchetypeMask.set(bitMaskI | bitMaskJ, componentsBitMask);
     }
 
     return partialComponentsBitMask;
@@ -241,7 +287,8 @@ export abstract class World {
 
     const query = this.mapComponentMaskToArchetypeMask.get(maskForFind)!;
 
-    const archetype = this.mapComponentsMaskToArchetype.get(query);
+    const archetypeIndex = this.mapComponentsMaskToArchetypeIndex.get(query);
+    const archetype = this.archetypes[archetypeIndex!];
 
     if (archetype === undefined) {
       console.error(`archetype not found for mask ${maskForFind}`);
@@ -266,7 +313,8 @@ export abstract class World {
     const maskForFind = componentsMask.reduce((acc, componentMask) => acc | componentMask, 0);
     const query = this.mapComponentMaskToArchetypeMask.get(maskForFind)!;
 
-    const archetype = this.mapComponentsMaskToArchetype.get(query);
+    const archetypeIndex = this.mapComponentsMaskToArchetypeIndex.get(query);
+    const archetype = this.archetypes[archetypeIndex!];
 
     if (archetype === undefined) {
       return;

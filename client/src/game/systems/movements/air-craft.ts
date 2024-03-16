@@ -2,8 +2,8 @@ import {Quaternion, Vector3} from 'three';
 import type {Mesh} from 'three';
 import type {RequiredComponents} from '../index.ts';
 import type {KeysInput} from '../../components';
-import {System} from '../index.ts';
 import {normalizedVec3} from '../../helpers';
+import {System} from '../base.ts';
 
 // This system is responsible for the movement like an air-craft.
 export class AriCraftMovementSystem extends System {

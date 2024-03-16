@@ -5,3 +5,6 @@ import {ClientWorld} from './world';
 const world = new ClientWorld({renderer, scene, camera});
 world.requestAnimationFrameWithElapsedTime();
 world.createEntityAndAddToScene(createPlayer());
+
+console.log('world', world.archetypes);
+console.log('mapComponentsMaskToArchetypeIndex', world.mapComponentsMaskToArchetypeIndex);

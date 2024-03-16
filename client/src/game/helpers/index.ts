@@ -19,11 +19,14 @@ export {
   WebGPURenderer,
 };
 
-export const getAutoIncrementIdGenerator = () => {
-  let id = 0;
+const getAutoIncrementIdGenerator = () => {
+  let id = -1;
 
   return () => ++id;
 };
+
+export const autoIncrementId = getAutoIncrementIdGenerator();
+
 export const rainbowColors = [
   new Color(0xff0000),
   new Color(0xff7f00),

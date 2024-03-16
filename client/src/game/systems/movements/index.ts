@@ -38,7 +38,7 @@ export class MovementsSystemRunner {
       return;
     }
 
-    const lastEntityIndex = archetypePartition[partitionConstants.lastInsertedIndex];
+    const lastEntityIndex = archetypePartition[partitionConstants.lastNotDeletedEntityIndex];
     const componentsIndexes = archetypePartition[partitionConstants.componentsIndexesOffset];
     const entityLength = archetypePartition[partitionConstants.entityLengthOffset];
 

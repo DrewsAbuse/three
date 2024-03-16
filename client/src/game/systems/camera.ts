@@ -1,8 +1,8 @@
-import type {ClientWorld} from '../world/client.ts';
-import type {BitMaskToTypes, BitMasks} from '../components/component.ts';
-import {bitMasks} from '../components/component.ts';
+import type {ClientWorld} from '../world';
+import type {BitMaskToTypes, BitMasks} from '../components';
+import {bitMasks} from '../components';
 import {partitionConstants} from '../world';
-import {System} from './index.ts';
+import {System} from './base.ts';
 
 export class CameraSystem extends System {
   world: ClientWorld;
@@ -23,7 +23,7 @@ export class CameraSystem extends System {
       return;
     }
 
-    const lastEntityIndex = archetypePartition[partitionConstants.lastInsertedIndex];
+    const lastEntityIndex = archetypePartition[partitionConstants.lastNotDeletedEntityIndex];
     const componentsIndexes = archetypePartition[partitionConstants.componentsIndexesOffset];
     const entityLength = archetypePartition[partitionConstants.entityLengthOffset];
 
