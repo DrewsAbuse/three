@@ -1,4 +1,13 @@
-import {Group, Matrix4, Mesh, PerspectiveCamera, Quaternion, Vector3} from 'three';
+import {
+  BoxGeometry,
+  Group,
+  Matrix4,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  Quaternion,
+  Vector3,
+} from 'three';
 import type {WebGPURenderer} from '../helpers';
 import type {InstancedMesh, Scene, WebGLRenderer} from 'three';
 import type {Component} from '../components';
@@ -7,7 +16,9 @@ import {createSkybox} from '../helpers';
 import {bitMasks} from '../components';
 import {CameraSystem} from '../systems';
 import {stats} from '../window.ts';
-import {World, partitionConstants} from './base.ts';
+import {SpatialHashGrid} from '../helpers/grid.ts';
+import {World} from './base.ts';
+import {partitionConstants} from './base.ts';
 
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;
@@ -24,6 +35,8 @@ export class ClientWorld extends World {
 
   cameraSystem: CameraSystem;
   debugCamera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+  grid = new SpatialHashGrid();
 
   constructor({
     renderer,
@@ -58,6 +71,16 @@ export class ClientWorld extends World {
         this.sceneEntities.updateId[0]++;
       },
     };
+
+    //debug
+
+    const boxGeometry = new BoxGeometry(10, 10, 10);
+    boxGeometry.translate(5, 0, 5);
+    const boxMaterial = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
+    const boxMesh = new Mesh(boxGeometry, boxMaterial);
+
+    scene.add(boxMesh);
+    this.grid.insert(boxMesh);
   }
 
   hz50 = 0.02;
@@ -70,12 +93,15 @@ export class ClientWorld extends World {
     requestAnimationFrame(t => {
       stats.begin();
       //Fixed update
-      const timeElapsed = t - previousRAFFixedUpdate;
-      previousRAFFixedUpdate += timeElapsed;
-      acc += timeElapsed;
-      while (acc >= this.hz50) {
-        acc -= this.hz50;
-      }
+      //
+      // const timeElapsed = t - previousRAFFixedUpdate;
+      // previousRAFFixedUpdate += timeElapsed;
+      // acc += timeElapsed;
+      // while (acc >= this.hz50) {
+      // acc -= this.hz50;
+      // }
+      //
+      //
       //
 
       //Frame rate independent update (delta time)
@@ -104,7 +130,6 @@ export class ClientWorld extends World {
     if (meshComponentIndex === undefined) {
       throw new Error(`meshComponent not found`);
     }
-
     this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
   }
 
@@ -119,6 +144,7 @@ export class ClientWorld extends World {
 
       this.movementsSystemRunner.update({
         timeElapsedS,
+        grid: this.grid,
         archetypePartition: this.getArchetypePartitionByStrictComponentsMask(
           this.movementsSystemRunner.requiredComponents
         ),
@@ -139,6 +165,7 @@ export class ClientWorld extends World {
 
       this.movementsSystemRunner.update({
         timeElapsedS,
+        grid: this.grid,
         archetypePartition: this.getArchetypePartitionByStrictComponentsMask(
           this.movementsSystemRunner.requiredComponents
         ),
@@ -223,6 +250,8 @@ export class ClientWorld extends World {
     this.sceneEntities.meshToAdd.forEach(mesh => {
       if (mesh instanceof Mesh || mesh instanceof Group) {
         this.scene.add(mesh);
+        this.grid.insert(mesh);
+        console.log(this.grid);
 
         return;
       }

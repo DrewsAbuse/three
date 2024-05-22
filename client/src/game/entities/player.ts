@@ -9,28 +9,12 @@ import {autoIncrementId} from '../helpers';
 const gui = new dat.GUI();
 const gltfLoader = new GLTFLoader();
 
-const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
+export const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
   gltf.scene.scale.set(12, 12, 12);
   gltf.scene.rotateY(Math.PI);
 
   return gltf.scene;
 });
-
-const bitMaskReducer = (
-  acc: number,
-  component: {
-    bitMask: number;
-  }
-) => acc | component.bitMask;
-const bitMaskComparator = (
-  a: {
-    bitMask: number;
-  },
-  b: {
-    bitMask: number;
-  }
-) => a.bitMask - b.bitMask;
-
 export type PlayerEntityCreation = ReturnType<typeof createPlayer>;
 
 export const createPlayer = (): {
@@ -43,6 +27,7 @@ export const createPlayer = (): {
 
   const mesh = new Mesh();
   mesh.add(model);
+
   mesh.add(axisHelperMESH);
 
   const meshComponent = new Component({
@@ -94,10 +79,61 @@ export const createPlayer = (): {
   });
 
   const components = [keysComponent, meshComponent, movementComponent, cameraComponent];
-  const sortedComponents = components.sort(bitMaskComparator);
+  const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
 
   return {
-    componentsBitMask: components.reduce(bitMaskReducer, 0),
+    componentsBitMask: components.reduce(
+      (
+        acc: number,
+        component: {
+          bitMask: number;
+        }
+      ) => acc | component.bitMask,
+      0
+    ),
+    sortedBitMasks: sortedComponents.map(component => component.bitMask),
+    entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
+  };
+};
+
+export const createCubeEntity = (
+  mesh: Mesh
+): {
+  componentsBitMask: number;
+  sortedBitMasks: number[];
+  entityArray: EntityArray;
+} => {
+  const meshComponent = new Component({
+    data: mesh,
+    bitMask: bitMasks.mesh,
+  });
+  const moveData: BitMaskToTypes[BitMasks['movement']] = [
+    'cube',
+    new Vector3(),
+    new Vector3(0, 0, 2),
+    new Vector3(0, 0, -3),
+    new Vector3(),
+    new Vector3(2, 1, 4),
+    new Vector3(-4, -3, -12),
+  ];
+  const movementComponent = new Component({
+    data: moveData,
+    bitMask: bitMasks.movement,
+  });
+
+  const components = [meshComponent, movementComponent];
+  const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
+
+  return {
+    componentsBitMask: components.reduce(
+      (
+        acc: number,
+        component: {
+          bitMask: number;
+        }
+      ) => acc | component.bitMask,
+      0
+    ),
     sortedBitMasks: sortedComponents.map(component => component.bitMask),
     entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
   };

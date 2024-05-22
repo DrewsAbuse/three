@@ -1,8 +1,7 @@
 import {
   AmbientLight,
   AxesHelper,
-  BoxGeometry,
-  ConeGeometry,
+ ConeGeometry,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -10,7 +9,6 @@ import {
   WebGLRenderer,
 } from 'three';
 import Stats from 'stats.js';
-
 export const renderer = new WebGLRenderer();
 
 const FOV = 100;
@@ -41,8 +39,7 @@ export const stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom).style.position = 'absolute';
 
-const boxGeometry = new BoxGeometry(20, 20, 20);
-const boxMaterial = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
-const boxMesh = new Mesh(boxGeometry, boxMaterial);
+//const gird = new SpatialHashGrid();
 
-scene.add(boxMesh);
+//const gridHelper = new GridHelper(gird.gridSize, GRID_HELPER_DIVISIONS);
+//scene.add(gridHelper);

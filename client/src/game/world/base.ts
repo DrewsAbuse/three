@@ -1,6 +1,7 @@
 import type {ComponentData} from '../components';
 import {autoIncrementId} from '../helpers';
 import {MovementsSystemRunner} from '../systems';
+import {InvertedIndex} from '../helpers/search.ts';
 
 type IsEntityDeleted = 0 | 1;
 type IsEntityDirty = 0 | 1;
@@ -34,6 +35,7 @@ export const partitionConstants = {
 export abstract class World {
   //Entity
   entityAutoIncrementId = autoIncrementId;
+  archetypesPrefixTree = new InvertedIndex();
   mapComponentsMaskToArchetype: MapComponentsMaskToArchetype = new Map();
   archetypes: {
     componentsBitMaskToPartitionIndex: Map<number, number>;
@@ -102,15 +104,12 @@ export abstract class World {
 
       const isWiderArchetypeMaskPassed = bitWise !== componentsBitMask && bitWise !== 0;
 
-      if (isWiderArchetypeMaskPassed) {
-        this.mapComponentsMaskToArchetypeIndex.delete(archetypeKeyComponentsMask);
-        this.mapComponentsMaskToArchetypeIndex.set(componentsBitMask, archetypeIndex);
-      }
-
       if (
         (archetypeKeyComponentsMask | componentsBitMask) === archetypeKeyComponentsMask ||
         isWiderArchetypeMaskPassed
       ) {
+        this.mapComponentsMaskToArchetypeIndex.set(componentsBitMask, archetypeIndex);
+
         isArchetypeFound = true;
         const archetype = this.archetypes[archetypeIndex];
 
@@ -149,6 +148,9 @@ export abstract class World {
         let partialComponentsBitMask = 0;
 
         archetype.entityIdToIndex.set(entityId, currentInsertIndex);
+
+
+
 
         for (let i = 0; i < sortedBitMasks.length; i++) {
           const bitMask = sortedBitMasks[i];
@@ -285,9 +287,7 @@ export abstract class World {
   ): ArchetypePartition | undefined {
     const maskForFind = componentsMask.reduce((acc, componentMask) => acc | componentMask, 0);
 
-    const query = this.mapComponentMaskToArchetypeMask.get(maskForFind)!;
-
-    const archetypeIndex = this.mapComponentsMaskToArchetypeIndex.get(query);
+    const archetypeIndex = this.mapComponentsMaskToArchetypeIndex.get(maskForFind);
     const archetype = this.archetypes[archetypeIndex!];
 
     if (archetype === undefined) {
@@ -311,62 +311,43 @@ export abstract class World {
 
   getArchetypePartitionByComponentsMasks(componentsMask: readonly number[]) {
     const maskForFind = componentsMask.reduce((acc, componentMask) => acc | componentMask, 0);
-    const query = this.mapComponentMaskToArchetypeMask.get(maskForFind)!;
-
-    const archetypeIndex = this.mapComponentsMaskToArchetypeIndex.get(query);
-    const archetype = this.archetypes[archetypeIndex!];
-
-    if (archetype === undefined) {
-      return;
-    }
-
-    const {twoDimensionalArray, componentsBitMaskToPartitionIndex} = archetype;
-
-    let subArrayIndex;
-
-    for (const [mask, index] of componentsBitMaskToPartitionIndex) {
+    const archetypesPartitions: TwoDimensionalArray = [];
+    const processedMasks: number[] = [];
+    for (const [mask, index] of this.mapComponentsMaskToArchetypeIndex) {
       if ((mask | maskForFind) === mask) {
-        subArrayIndex = index;
-        break;
+        const archetype = this.archetypes[index];
+
+        const {twoDimensionalArray, componentsBitMaskToPartitionIndex} = archetype;
+
+        for (const [mask, index] of componentsBitMaskToPartitionIndex) {
+          const or = mask | maskForFind;
+
+          if (or === mask && !processedMasks.find(processedMask => processedMask === mask)) {
+            archetypesPartitions.push(twoDimensionalArray[index]);
+            processedMasks.push(mask);
+          }
+        }
       }
     }
 
-    if (subArrayIndex === undefined) {
-      return;
-    }
-
-    return twoDimensionalArray[subArrayIndex];
+    return archetypesPartitions;
   }
 
   getArchetypePartitionByComponentMask(componentMask: number) {
-    const archetypeMask = this.mapComponentMaskToArchetypeMask.get(componentMask);
+    const archetypesPartitions: TwoDimensionalArray = [];
 
-    if (archetypeMask === undefined) {
-      return;
-    }
-
-    const archetype = this.mapComponentsMaskToArchetype.get(archetypeMask);
-
-    if (archetype === undefined) {
-      return;
-    }
-
-    const {twoDimensionalArray, componentsBitMaskToPartitionIndex} = archetype;
-
-    let subArrayIndex;
-
-    for (const [mask, index] of componentsBitMaskToPartitionIndex) {
+    for (const [mask, index] of this.mapComponentsMaskToArchetypeIndex) {
       if ((mask | componentMask) === mask) {
-        subArrayIndex = index;
-        break;
+        const {twoDimensionalArray, componentsBitMaskToPartitionIndex} = this.archetypes[index];
+        for (const [mask, index] of componentsBitMaskToPartitionIndex) {
+          if ((mask | componentMask) === mask) {
+            archetypesPartitions.push(twoDimensionalArray[index]);
+          }
+        }
       }
     }
 
-    if (subArrayIndex === undefined) {
-      return;
-    }
-
-    return twoDimensionalArray[subArrayIndex];
+    return archetypesPartitions;
   }
 
   abstract runSystems(timeElapsed: number): void;
