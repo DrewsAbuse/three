@@ -1,8 +1,5 @@
-import {BoxGeometry, Mesh, MeshBasicMaterial} from 'three';
 import type {Object3D, Vector3} from 'three';
-import {scene} from '../window.ts';
 
-const randomColor = () => Math.random() * 0xffffff;
 // Define constants
 export const GRID_HELPER_SIZE = 5000000;
 export const GRID_HELPER_DIVISIONS = 500000;
@@ -32,27 +29,8 @@ export class SpatialHashGrid {
     const key = this.getKey(x, y, z);
     const cell = this.cells.get(key);
 
-    //create random color wireframe cubes
-    //
-    // const geometry = new BoxGeometry(10, 10, 10);
-    // const material = new LineBasicMaterial({color: randomColor()});
-    // const wireframe = new LineSegments(new WireframeGeometry(geometry), material);
-    // wireframe.position.set(position.x, position.y, position.z);
-    // scene.add(wireframe);
-    //
-    //
-    //
-
     if (!cell) {
       this.cells.set(key, new Set([object]));
-
-      const geometry = new BoxGeometry(10, 10, 10);
-      const material = new MeshBasicMaterial({color: randomColor(), wireframe: true});
-
-      const box = new Mesh(geometry, material);
-
-      box.position.set(position.x, position.y, position.z);
-      scene.add(box);
 
       return;
     }

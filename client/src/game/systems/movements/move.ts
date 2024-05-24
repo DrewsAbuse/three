@@ -1,15 +1,8 @@
 import {type Mesh, Quaternion, Vector3} from 'three';
-import type {RequiredComponents} from '../index.ts';
-import {System} from '../base.ts';
+import {SubSystem} from '../base.ts';
 import {normalizedVec3} from '../../helpers';
 
-export class MovementSystem extends System {
-  constructor(requiredComponents: RequiredComponents) {
-    super({
-      requiredComponents,
-    });
-  }
-
+export class MovementAndRotationSystem extends SubSystem {
   frameDeceleration = new Vector3();
   quaternionContainer = new Quaternion();
 

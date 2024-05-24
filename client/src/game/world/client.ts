@@ -1,29 +1,28 @@
 import {
-  BoxGeometry,
+  AmbientLight,
+  AxesHelper,
+  ConeGeometry,
   Group,
-  Matrix4,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
-  Quaternion,
-  Vector3,
 } from 'three';
+import Stats from 'stats.js';
+import {Scene, WebGLRenderer} from 'three';
 import type {WebGPURenderer} from '../helpers';
-import type {InstancedMesh, Scene, WebGLRenderer} from 'three';
 import type {Component} from '../components';
 import type {EntityArray} from './base.ts';
 import {createSkybox} from '../helpers';
 import {bitMasks} from '../components';
 import {CameraSystem} from '../systems';
-import {stats} from '../window.ts';
 import {SpatialHashGrid} from '../helpers/grid.ts';
 import {World} from './base.ts';
-import {partitionConstants} from './base.ts';
 
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;
   renderer: WebGPURenderer | WebGLRenderer;
-  scene: Scene;
+  stats = new Stats();
+  scene = new Scene();
   camera: PerspectiveCamera;
   sceneEntities: {
     updateId: [0];
@@ -38,19 +37,31 @@ export class ClientWorld extends World {
 
   grid = new SpatialHashGrid();
 
-  constructor({
-    renderer,
-    camera,
-    scene,
-  }: {
-    renderer: WebGPURenderer | WebGLRenderer;
-    scene: Scene;
-    camera: PerspectiveCamera;
-  }) {
+  constructor() {
     super();
-    this.renderer = renderer;
-    this.scene = scene;
-    this.camera = camera;
+
+    const FOV = 100;
+    const ASPECT = window.innerWidth / window.innerHeight;
+    const NEAR = 0.2;
+    const FAR = 3000;
+
+    this.camera = new PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
+    this.renderer = new WebGLRenderer();
+
+    const sphereGeometry = new ConeGeometry(5, 10, 25);
+    const sphereMaterial = new MeshBasicMaterial({color: 0xff0000});
+    const sphereMesh = new Mesh(sphereGeometry, sphereMaterial);
+    sphereMesh.rotation.x = Math.PI / 2;
+
+    const cameraAxisHelper = new AxesHelper(-10);
+
+    this.camera.add(cameraAxisHelper);
+    this.camera.add(sphereMesh);
+
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(this.renderer.domElement);
+
+    //TODO: FIX THIS SHIT
     this.cameraSystem = new CameraSystem(this);
 
     this.debugCamera.position.set(80, 80, 70);
@@ -72,15 +83,12 @@ export class ClientWorld extends World {
       },
     };
 
-    //debug
+    this.stats.showPanel(0);
+    document.body.appendChild(this.stats.dom).style.position = 'absolute';
 
-    const boxGeometry = new BoxGeometry(10, 10, 10);
-    boxGeometry.translate(5, 0, 5);
-    const boxMaterial = new MeshBasicMaterial({color: 0x00ff00, wireframe: true});
-    const boxMesh = new Mesh(boxGeometry, boxMaterial);
+    const light = new AmbientLight(0x404040);
 
-    scene.add(boxMesh);
-    this.grid.insert(boxMesh);
+    this.scene.add(light);
   }
 
   hz50 = 0.02;
@@ -91,25 +99,11 @@ export class ClientWorld extends World {
     previousRAF: number = 0
   ) => {
     requestAnimationFrame(t => {
-      stats.begin();
-      //Fixed update
-      //
-      // const timeElapsed = t - previousRAFFixedUpdate;
-      // previousRAFFixedUpdate += timeElapsed;
-      // acc += timeElapsed;
-      // while (acc >= this.hz50) {
-      // acc -= this.hz50;
-      // }
-      //
-      //
-      //
-
-      //Frame rate independent update (delta time)
+      this.stats.begin();
       this.runSystems(t - previousRAF);
       this.renderer.render(this.scene, this.camera);
       previousRAF = t;
-      //
-      stats.end();
+      this.stats.end();
 
       setTimeout(() => {
         this.requestAnimationFrameWithElapsedTime(previousRAFFixedUpdate, acc, previousRAF);
@@ -133,27 +127,6 @@ export class ClientWorld extends World {
     this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
   }
 
-  runSystemsFixedUpdate(timeElapsed: number) {
-    {
-      const timeElapsedS = Math.min(1.0 / 30.0, timeElapsed * 0.001);
-
-      if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
-        this.renderSceneSystem();
-        this.renderSystemUpdateId = this.sceneEntities.updateId[0];
-      }
-
-      this.movementsSystemRunner.update({
-        timeElapsedS,
-        grid: this.grid,
-        archetypePartition: this.getArchetypePartitionByStrictComponentsMask(
-          this.movementsSystemRunner.requiredComponents
-        ),
-      });
-      this.cameraSystem.update({timeElapsedS});
-      this.particlesSnackLoopSystem(timeElapsedS);
-    }
-  }
-
   runSystems(timeElapsed: number) {
     {
       const timeElapsedS = Math.min(1.0 / 30.0, timeElapsed * 0.001);
@@ -173,76 +146,6 @@ export class ClientWorld extends World {
       this.cameraSystem.update({
         timeElapsedS,
       });
-      //this.particlesSnackLoopSystem(timeElapsedS);
-    }
-  }
-
-  particlesSnackLoopSystem(timeElapsedS: number) {
-    const archetypePartition = this.getArchetypePartitionByStrictComponentsMask([
-      bitMasks.instancedMesh,
-    ]);
-
-    if (archetypePartition === undefined) {
-      return;
-    }
-
-    const lastEntityIndex = archetypePartition[0];
-    const componentIndexes = archetypePartition[1];
-    const entityLength = archetypePartition[2];
-
-    const instanceMatrixIndex = componentIndexes[bitMasks.instancedMesh];
-
-    const dummyMatrix4 = new Matrix4();
-    const dummyQuaternion = new Quaternion();
-    const dummyPosition = new Vector3();
-    const dummyScale = new Vector3();
-
-    const dummyTwoMatrix4 = new Matrix4();
-    const dummyTwoQuaternion = new Quaternion();
-    const dummyTwoPosition = new Vector3();
-    const dummyTwoScale = new Vector3(0, 0, 0);
-
-    const multiplier = 10;
-
-    for (let i = partitionConstants.entityLengthOffset; i < lastEntityIndex; i += entityLength) {
-      const instancedMesh = archetypePartition[i + instanceMatrixIndex] as InstancedMesh;
-
-      for (let j = 0; j < instancedMesh.count - 1; j++) {
-        instancedMesh.getMatrixAt(j, dummyMatrix4);
-        dummyMatrix4.decompose(dummyPosition, dummyQuaternion, dummyScale);
-
-        instancedMesh.getMatrixAt(j + 1, dummyTwoMatrix4);
-        dummyTwoMatrix4.decompose(dummyTwoPosition, dummyTwoQuaternion, dummyTwoScale);
-
-        instancedMesh.setMatrixAt(
-          j,
-          dummyMatrix4.compose(
-            dummyPosition.lerp(dummyTwoPosition, timeElapsedS * multiplier),
-            dummyQuaternion.slerp(dummyTwoQuaternion, timeElapsedS * multiplier),
-            dummyScale.lerp(dummyTwoScale, timeElapsedS * multiplier)
-          )
-        );
-      }
-
-      instancedMesh.getMatrixAt(instancedMesh.count - 1, dummyMatrix4);
-      dummyMatrix4.decompose(dummyPosition, dummyQuaternion, dummyScale);
-
-      instancedMesh.getMatrixAt(0, dummyTwoMatrix4);
-      dummyTwoMatrix4.decompose(dummyTwoPosition, dummyTwoQuaternion, dummyTwoScale);
-
-      instancedMesh.setMatrixAt(
-        instancedMesh.count - 1,
-        dummyMatrix4.compose(
-          dummyPosition.lerpVectors(dummyPosition, dummyTwoPosition, timeElapsedS * multiplier),
-          dummyQuaternion.slerp(dummyTwoQuaternion, timeElapsedS * multiplier),
-          dummyScale.lerpVectors(dummyScale, dummyTwoScale, timeElapsedS * multiplier)
-        )
-      );
-
-      instancedMesh.instanceMatrix.needsUpdate = true;
-      if (instancedMesh.instanceColor) {
-        instancedMesh.instanceColor.needsUpdate = true;
-      }
     }
   }
 

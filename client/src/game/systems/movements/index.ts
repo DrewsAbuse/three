@@ -5,8 +5,8 @@ import type {SpatialHashGrid} from '../../helpers/grid.ts';
 import {partitionConstants} from '../../world';
 import {bitMasks, movementComponentDataIndexes} from '../../components';
 import {CubesMovementInputSystem} from './cubes.ts';
-import {AriCraftMovementInputSystem} from './air-craft-input.ts';
-import {MovementSystem} from './move.ts';
+import {MovementInputSystem} from './input.ts';
+import {MovementAndRotationSystem} from './move.ts';
 
 const SYSTEM_REQUIRED_COMPONENTS = [
   bitMasks.keysInput,
@@ -18,17 +18,17 @@ const SYSTEM_REQUIRED_COMPONENTS = [
 export class MovementsSystemRunner {
   requiredComponents = SYSTEM_REQUIRED_COMPONENTS;
   movementInputSystem: {
-    'air-craft': AriCraftMovementInputSystem;
+    'air-craft': MovementInputSystem;
     cube: CubesMovementInputSystem;
   };
-  movementSystem: MovementSystem;
+  movementSystem: MovementAndRotationSystem;
   positionBefore: Vector3 = new Vector3();
 
   constructor() {
-    this.movementSystem = new MovementSystem(this.requiredComponents);
+    this.movementSystem = new MovementAndRotationSystem();
     this.movementInputSystem = {
-      'air-craft': new AriCraftMovementInputSystem(this.requiredComponents),
-      cube: new CubesMovementInputSystem(this.requiredComponents),
+      'air-craft': new MovementInputSystem(),
+      cube: new CubesMovementInputSystem(),
     };
   }
 
@@ -63,13 +63,16 @@ export class MovementsSystemRunner {
       const movementComponentData = archetypePartition[
         i + movementComponentOffset
       ] as BitMaskToTypes[BitMasks['movement']];
-      //const entityId = archetypePartition[i];
 
-      movementComponentData[this.componentsIndexes.movement.velocityRotation];
       const rotationVelocity =
         movementComponentData[this.componentsIndexes.movement.velocityRotation];
       const rotationAcceleration =
         movementComponentData[this.componentsIndexes.movement.accelerationRotation];
+
+      const rotationDeceleration =
+        movementComponentData[this.componentsIndexes.movement.decelerationRotation];
+      const moveDeceleration =
+        movementComponentData[this.componentsIndexes.movement.decelerationMove];
 
       const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
       const moveAcceleration =
@@ -81,49 +84,17 @@ export class MovementsSystemRunner {
         i + keysComponentOffset
       ] as BitMaskToTypes[BitMasks['keysInput']];
 
-      switch (movementType) {
-        case 'air-craft':
-          this.movementInputSystem[movementType].update({
-            timeElapsedS,
-            props: {
-              keyDownToBoolMap,
-              rotationVelocity,
-              rotationAcceleration,
-              moveVelocity,
-              moveAcceleration,
-            },
-          });
-          break;
-        case 'cube':
-          this.movementInputSystem[movementType].update({
-            timeElapsedS,
-            props: {
-              moveVelocity,
-              dateMs,
-            },
-          });
-          break;
-
-        default:
-          throw new Error(`Unknown movement type: ${movementType}`);
-      }
-    }
-
-    for (let i = partitionConstants.entityLengthOffset; i < lastEntityIndex; i += entityLength) {
-      const movementComponentData = archetypePartition[
-        i + movementComponentOffset
-      ] as BitMaskToTypes[BitMasks['movement']];
-      //const entityId = archetypePartition[i];
-
-      movementComponentData[this.componentsIndexes.movement.velocityRotation];
-      const rotationVelocity =
-        movementComponentData[this.componentsIndexes.movement.velocityRotation];
-      const rotationDeceleration =
-        movementComponentData[this.componentsIndexes.movement.decelerationRotation];
-
-      const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
-      const moveDeceleration =
-        movementComponentData[this.componentsIndexes.movement.decelerationMove];
+      this.movementInputSystem[movementType].update({
+        timeElapsedS,
+        props: {
+          keyDownToBoolMap,
+          rotationVelocity,
+          rotationAcceleration,
+          moveVelocity,
+          moveAcceleration,
+          dateMs,
+        },
+      });
 
       const mesh = archetypePartition[i + meshComponentOffset] as BitMaskToTypes[BitMasks['mesh']];
 

@@ -44,7 +44,7 @@ export abstract class World {
   }[] = [];
   mapComponentsMaskToArchetypeIndex: Map<number, number> = new Map();
   mapComponentMaskToArchetypeMask: Map<number, number> = new Map();
-  mapEntityIdTomapComponentsMask: Map<number, number> = new Map();
+  mapEntityIdToMapComponentsMask: Map<number, number> = new Map();
 
   //Helpers
   isDeletedInit = 0;
@@ -121,7 +121,7 @@ export abstract class World {
           const partition = archetype.twoDimensionalArray[archetypePartitionIndex];
 
           let lastInsertIndex = partition[0];
-          this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
+          this.mapEntityIdToMapComponentsMask.set(entityId, componentsBitMask);
 
           lastInsertIndex += 1;
           archetype.entityIdToIndex.set(entityId, lastInsertIndex);
@@ -142,15 +142,12 @@ export abstract class World {
         const partition = new Array<Record<number, number> | ComponentData>(
           this.partitionStartIndex + entityLength
         );
-        this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
+        this.mapEntityIdToMapComponentsMask.set(entityId, componentsBitMask);
 
         const componentsBitMaskToIndex: Record<number, number> = {};
         let partialComponentsBitMask = 0;
 
         archetype.entityIdToIndex.set(entityId, currentInsertIndex);
-
-
-
 
         for (let i = 0; i < sortedBitMasks.length; i++) {
           const bitMask = sortedBitMasks[i];
@@ -211,7 +208,7 @@ export abstract class World {
       new Array<Record<number, number> | ComponentData>(this.partitionStartIndex + entityLength),
     ];
     const entityId = entityArray[0];
-    this.mapEntityIdTomapComponentsMask.set(entityId, componentsBitMask);
+    this.mapEntityIdToMapComponentsMask.set(entityId, componentsBitMask);
 
     const componentsBitMaskToIndex: Record<number, number> = {};
     const entityIdToIndex = new Map([[entityId, currentInsertIndex]]);

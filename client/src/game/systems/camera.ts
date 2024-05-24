@@ -4,6 +4,7 @@ import {bitMasks} from '../components';
 import {partitionConstants} from '../world';
 import {System} from './base.ts';
 
+//TODO: FIX THIS SHIT
 export class CameraSystem extends System {
   world: ClientWorld;
 
@@ -37,9 +38,6 @@ export class CameraSystem extends System {
           i + cameraIndex
         ] as BitMaskToTypes[BitMasks['camera']];
 
-        //console.log('cameraSettings', cameraSettings.lookAt);
-
-        //Smoothing rate dictates the proportion of source remaining after one second Math.pow(X, timeElapsedS)
         const t1 = 1.0 - Math.pow(0.5, timeElapsedS * cameraSettings.lerpCoefficient);
         this.world.camera.position.lerp(
           cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),

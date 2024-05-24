@@ -1,14 +1,7 @@
 import {Vector3} from 'three';
-import type {RequiredComponents} from '../index.ts';
-import {System} from '../base.ts';
+import {SubSystem} from '../base.ts';
 
-export class CubesMovementInputSystem extends System {
-  constructor(requiredComponents: RequiredComponents) {
-    super({
-      requiredComponents,
-    });
-  }
-
+export class CubesMovementInputSystem extends SubSystem {
   previousDateMs: number = new Date().getTime();
 
   createRandomDirectionVector() {

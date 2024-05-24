@@ -67,13 +67,6 @@ export type BitMaskToTypes = {
   [key: number]: ComponentData | SingletonComponentsData;
 };
 
-//
-// const newComponent = {
-// mask: new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]),
-// };
-//
-//
-//
 export type CameraComponentData = {
   position: Vector3;
   quaternion: Quaternion;
