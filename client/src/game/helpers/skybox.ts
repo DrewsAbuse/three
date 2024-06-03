@@ -9,7 +9,6 @@ import nz from '../../assets/cube-map/nz.png';
 export const createSkybox = () => {
   const loader = new CubeTextureLoader();
   const texture = loader.load([px, nx, py, ny, pz, nz]);
-  console.log('texture', texture);
 
   texture.colorSpace = SRGBColorSpace;
 
