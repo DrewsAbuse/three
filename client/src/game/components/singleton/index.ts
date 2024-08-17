@@ -1,4 +1,4 @@
-import {Component, bitMasks} from '../component.ts';
+import {Component, bitMasks} from '../components.ts';
 
 export type KeysInput = {
   keyDownToBoolMap: Map<string, boolean>;

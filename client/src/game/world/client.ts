@@ -11,7 +11,7 @@ import Stats from 'stats.js';
 import {Scene, WebGLRenderer} from 'three';
 import type {WebGPURenderer} from '../helpers';
 import type {Component} from '../components';
-import type {EntityArray} from './base.ts';
+import type {EntityArray} from './storage.ts';
 import {createSkybox} from '../helpers';
 import {bitMasks} from '../components';
 import {CameraSystem} from '../systems';
@@ -21,6 +21,7 @@ import {World} from './base.ts';
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;
   renderer: WebGPURenderer | WebGLRenderer;
+
   stats = new Stats();
   scene = new Scene();
   camera: PerspectiveCamera;
@@ -62,7 +63,7 @@ export class ClientWorld extends World {
     document.body.appendChild(this.renderer.domElement);
 
     //TODO: FIX THIS SHIT
-    this.cameraSystem = new CameraSystem(this);
+    this.cameraSystem = new CameraSystem(this.camera);
 
     this.debugCamera.position.set(80, 80, 70);
     this.debugCamera.lookAt(0, 0, 0);
@@ -116,7 +117,7 @@ export class ClientWorld extends World {
     entityArray: EntityArray;
     sortedBitMasks: number[];
   }) {
-    this.createEntity(params);
+    this.storage.createEntity(params);
     const meshComponentIndex = params.sortedBitMasks.findIndex(
       bitMask => bitMask === bitMasks.mesh || bitMask === bitMasks.instancedMesh
     );
@@ -139,7 +140,7 @@ export class ClientWorld extends World {
       this.movementsSystemRunner.update({
         timeElapsedS,
         grid: this.grid,
-        archetypePartition: this.getArchetypePartitionByStrictComponentsMask(
+        archetypePartition: this.storage.getArchetypePartitionByStrictComponentsMask(
           this.movementsSystemRunner.requiredComponents
         ),
       });
@@ -154,7 +155,6 @@ export class ClientWorld extends World {
       if (mesh instanceof Mesh || mesh instanceof Group) {
         this.scene.add(mesh);
         this.grid.insert(mesh);
-        console.log(this.grid);
 
         return;
       }

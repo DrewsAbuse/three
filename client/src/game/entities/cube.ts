@@ -1,7 +1,7 @@
 //Create new BOX entity
 
 import {BoxGeometry, Mesh, MeshBasicMaterial, Vector3} from 'three';
-import type {EntityArray} from '../world';
+import type {EntityArray} from '../world/storage.ts';
 import {Component, bitMasks} from '../components';
 import {autoIncrementId} from '../helpers';
 

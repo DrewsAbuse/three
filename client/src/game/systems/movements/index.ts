@@ -1,9 +1,9 @@
 import {Vector3} from 'three';
-import type {ArchetypePartition} from '../../world';
 import type {BitMaskToTypes, BitMasks} from '../../components';
 import type {SpatialHashGrid} from '../../helpers/grid.ts';
-import {partitionConstants} from '../../world';
+import type {ArchetypePartition} from '../../world/storage.ts';
 import {bitMasks, movementComponentDataIndexes} from '../../components';
+import {WorldStorage} from '../../world/storage.ts';
 import {CubesMovementInputSystem} from './cubes.ts';
 import {MovementInputSystem} from './input.ts';
 import {MovementAndRotationSystem} from './move.ts';
@@ -51,15 +51,21 @@ export class MovementsSystemRunner {
 
     const dateMs = new Date().getTime();
 
-    const lastEntityIndex = archetypePartition[partitionConstants.lastNotDeletedEntityIndex];
-    const componentsIndexes = archetypePartition[partitionConstants.componentsIndexesOffset];
-    const entityLength = archetypePartition[partitionConstants.entityLengthOffset];
+    const lastEntityIndex =
+      archetypePartition[WorldStorage.partitionConstants.lastNotDeletedEntityIndex];
+    const componentsIndexes =
+      archetypePartition[WorldStorage.partitionConstants.componentsIndexesOffset];
+    const entityLength = archetypePartition[WorldStorage.partitionConstants.entityLengthOffset];
 
     const keysComponentOffset = componentsIndexes[bitMasks.keysInput];
     const meshComponentOffset = componentsIndexes[bitMasks.mesh];
     const movementComponentOffset = componentsIndexes[bitMasks.movement];
 
-    for (let i = partitionConstants.entityLengthOffset; i < lastEntityIndex; i += entityLength) {
+    for (
+      let i = WorldStorage.partitionConstants.entityLengthOffset;
+      i < lastEntityIndex;
+      i += entityLength
+    ) {
       const movementComponentData = archetypePartition[
         i + movementComponentOffset
       ] as BitMaskToTypes[BitMasks['movement']];

@@ -28,8 +28,6 @@ export const composeInstancedMesh = (params: ComposeInstancedMeshParams) => {
     material = new MeshBasicMaterial({wireframe: true}),
   } = params;
 
-  console.log('instanceCount', instanceCount);
-
   const instancedMesh = new InstancedMesh(meshGeometry, material, instanceCount);
   instancedMesh.instanceMatrix.setUsage(DynamicDrawUsage);
 
