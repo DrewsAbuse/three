@@ -2,7 +2,7 @@ import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import dat from 'dat.gui';
 import type {BitMaskToTypes, BitMasks} from '../components';
-import type {EntityArray} from '../world';
+import type {EntityArray} from '../world/storage.ts';
 import {Component, bitMasks, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
 
