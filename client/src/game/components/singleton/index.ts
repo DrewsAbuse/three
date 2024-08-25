@@ -1,4 +1,4 @@
-import {Component, bitMasks} from '../components.ts';
+import {Component, componentsId} from '../components.ts';
 
 export type KeysInput = {
   keyDownToBoolMap: Map<string, boolean>;
@@ -28,7 +28,7 @@ const keysInput = ((): KeysInput => {
 })();
 
 export const keysInputComponent = new Component({
-  bitMask: bitMasks.keysInput,
+  id: componentsId.keysInput,
   data: keysInput,
 });
 

@@ -13,19 +13,7 @@ import type {
 } from 'three';
 import type {KeysInput} from './';
 
-export class Component<T extends BitMaskKeys = BitMaskKeys> {
-  public data: BitMaskToTypes[T];
-  type: ExtractRecordValue<typeof bitMaskToComponentLabel>;
-  bitMask: keyof typeof bitMaskToComponentLabel;
-
-  constructor({data, bitMask}: {data: BitMaskToTypes[T]; bitMask: T}) {
-    this.data = data;
-    this.bitMask = bitMask;
-    this.type = bitMaskToComponentLabel[this.bitMask];
-  }
-}
-
-export class ComponentV2<T extends ComponentKeys = ComponentKeys> {
+export class Component<T extends ComponentKeys = ComponentKeys> {
   public data: ComponentIdToTypes[T];
   public key: Labels;
   public id: ComponentKeys;
@@ -110,35 +98,6 @@ export type ComponentLabelToTypes = {
   [key: string]: ComponentData | SingletonComponentsData;
 };
 
-export type BitMasks = typeof bitMasks;
-
-type BitMaskToComponentLabel = Record<ExtractRecordValue<typeof bitMasks>, keyof typeof bitMasks>;
-
-export const bitMaskToComponentLabel: BitMaskToComponentLabel = {
-  2: 'keysInput',
-  4: 'mouse',
-  8: 'mesh',
-  16: 'movement',
-  32: 'renderable',
-  64: 'camera',
-  128: 'eventsContainer',
-  256: 'instancedMesh',
-} as const;
-
-type BitMaskKeys = keyof typeof bitMaskToComponentLabel;
-
-export type BitMaskToTypes = {
-  2: KeysInput;
-  4: Vector2;
-  8: Mesh;
-  16: MovementComponentData;
-  32: boolean;
-  64: CameraComponentData;
-  //128: 'eventsContainer';
-  256: InstancedMesh;
-  [key: number]: ComponentData | SingletonComponentsData;
-};
-
 export type CameraComponentData = {
   position: Vector3;
   quaternion: Quaternion;
@@ -157,16 +116,6 @@ export type MovementComponentData = [
   Vector3, // accelerationRotation
   Vector3, // decelerationRotation
 ];
-
-export const movementComponentDataIndexes = {
-  movementType: 0,
-  velocityMove: 1,
-  accelerationMove: 2,
-  decelerationMove: 3,
-  velocityRotation: 4,
-  accelerationRotation: 5,
-  decelerationRotation: 6,
-} as const;
 
 export type SingletonComponentsData = KeysInput;
 

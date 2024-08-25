@@ -1,10 +1,14 @@
 import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import dat from 'dat.gui';
-import type {BitMaskToTypes, BitMasks} from '../components';
-import type {EntityArray} from '../world/storage.ts';
-import {Component, bitMasks, keysInputComponent} from '../components';
+import type {EntityInput} from '../types.ts';
+import type {ComponentIdToTypes} from '../components';
+import {componentsId} from '../components';
+import {Component, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
+
+//TODO: Move GUI form player
+//TODO: Reduce array and objects creation while creating entities
 
 const gui = new dat.GUI();
 const gltfLoader = new GLTFLoader();
@@ -17,11 +21,7 @@ export const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').th
 });
 export type PlayerEntityCreation = ReturnType<typeof createPlayer>;
 
-export const createPlayer = (): {
-  componentsBitMask: number;
-  sortedBitMasks: number[];
-  entityArray: EntityArray;
-} => {
+export const createPlayer = (): EntityInput => {
   const axisHelperMESH = new AxesHelper(50);
   axisHelperMESH.setColors(0xff0000, 0x00ff00, 0x0000ff);
 
@@ -32,10 +32,10 @@ export const createPlayer = (): {
 
   const meshComponent = new Component({
     data: mesh,
-    bitMask: bitMasks.mesh,
+    id: componentsId.mesh,
   });
 
-  const moveData: BitMaskToTypes[BitMasks['movement']] = [
+  const moveData: ComponentIdToTypes[componentsId.movement] = [
     'air-craft',
     new Vector3(),
     new Vector3(0, 0, 2),
@@ -62,7 +62,7 @@ export const createPlayer = (): {
 
   const movementComponent = new Component({
     data: moveData,
-    bitMask: bitMasks.movement,
+    id: componentsId.movement,
   });
   const keysComponent = keysInputComponent;
 
@@ -75,39 +75,24 @@ export const createPlayer = (): {
       lerpCoefficient: 10,
       slerpCoefficient: 5,
     },
-    bitMask: bitMasks.camera,
+    id: componentsId.camera,
   });
 
   const components = [keysComponent, meshComponent, movementComponent, cameraComponent];
-  const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
+  const sortedComponents = components.sort((a, b) => a.id - b.id);
 
   return {
-    componentsBitMask: components.reduce(
-      (
-        acc: number,
-        component: {
-          bitMask: number;
-        }
-      ) => acc | component.bitMask,
-      0
-    ),
-    sortedBitMasks: sortedComponents.map(component => component.bitMask),
+    componentsId: new Uint16Array(sortedComponents.map(({id}) => id)),
     entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
   };
 };
 
-export const createCubeEntity = (
-  mesh: Mesh
-): {
-  componentsBitMask: number;
-  sortedBitMasks: number[];
-  entityArray: EntityArray;
-} => {
+export const createCubeEntity = (mesh: Mesh): EntityInput => {
   const meshComponent = new Component({
     data: mesh,
-    bitMask: bitMasks.mesh,
+    id: componentsId.mesh,
   });
-  const moveData: BitMaskToTypes[BitMasks['movement']] = [
+  const moveData: ComponentIdToTypes[componentsId.movement] = [
     'cube',
     new Vector3(),
     new Vector3(0, 0, 2),
@@ -118,23 +103,14 @@ export const createCubeEntity = (
   ];
   const movementComponent = new Component({
     data: moveData,
-    bitMask: bitMasks.movement,
+    id: componentsId.movement,
   });
 
   const components = [meshComponent, movementComponent];
-  const sortedComponents = components.sort((a, b) => a.bitMask - b.bitMask);
+  const sortedComponents = components.sort((a, b) => a.id - b.id);
 
   return {
-    componentsBitMask: components.reduce(
-      (
-        acc: number,
-        component: {
-          bitMask: number;
-        }
-      ) => acc | component.bitMask,
-      0
-    ),
-    sortedBitMasks: sortedComponents.map(component => component.bitMask),
+    componentsId: new Uint16Array(sortedComponents.map(component => component.id)),
     entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
   };
 };

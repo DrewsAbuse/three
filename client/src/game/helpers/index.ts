@@ -19,7 +19,7 @@ export {
   WebGPURenderer,
 };
 
-const getAutoIncrementIdGenerator = () => {
+export const getAutoIncrementIdGenerator = () => {
   let id = -1;
 
   return () => ++id;

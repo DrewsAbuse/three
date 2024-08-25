@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2023",
+    "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2023.Array", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "typeRoots": [
       "./node_modules/@webgpu", "./node_modules/@types",],

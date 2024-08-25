@@ -1,6 +1,7 @@
 import type {Camera} from 'three';
-import type {BitMaskToTypes, BitMasks} from '../components';
-import {bitMasks} from '../components';
+import type {TickParams} from '../types.ts';
+import type {ComponentIdToTypes} from '../components';
+import {componentsId} from '../components';
 import {System} from './base.ts';
 
 export class CameraSystem extends System {
@@ -8,56 +9,34 @@ export class CameraSystem extends System {
 
   constructor(cameraInstance: Camera) {
     super({
-      requiredComponents: [bitMasks.keysInput, bitMasks.camera],
+      requiredComponents: new Uint16Array([componentsId.camera, componentsId.mesh]),
     });
     this.camera = cameraInstance;
   }
 
-  update({timeElapsedS}: {timeElapsedS: number}) {
-    const archetypePartitions = this.storage.getArchetypePartitionByComponentsMasks(
-      this.requiredComponents
+  updateTick({timeElapsed, partition, index, idToComponentOffset}: TickParams) {
+    const cameraIndex = idToComponentOffset[componentsId.camera];
+    const meshIndex = idToComponentOffset[componentsId.mesh];
+
+    const mesh = partition[index + meshIndex] as ComponentIdToTypes[componentsId.mesh];
+    const cameraSettings = partition[
+      index + cameraIndex
+    ] as ComponentIdToTypes[componentsId.camera];
+
+    this.camera.position.lerp(
+      cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
+      1.0 - Math.pow(0.5, timeElapsed * cameraSettings.lerpCoefficient)
     );
 
-    if (archetypePartitions === undefined) {
-      return;
-    }
+    this.camera.quaternion.slerp(
+      mesh.quaternion,
+      1.0 - Math.pow(0.5, timeElapsed * cameraSettings.slerpCoefficient)
+    );
 
-    for (const archetypePartition of archetypePartitions) {
-      const lastEntityIndex =
-        archetypePartition[this.storage.partitionConstants.lastNotDeletedEntityIndex];
-      const componentsIndexes =
-        archetypePartition[this.storage.partitionConstants.componentsIndexesOffset];
-      const entityLength = archetypePartition[this.storage.partitionConstants.entityLengthOffset];
-
-      const cameraIndex = componentsIndexes[bitMasks.camera];
-      const meshIndex = componentsIndexes[bitMasks.mesh];
-
-      for (
-        let i = this.storage.partitionConstants.entityLengthOffset;
-        i < lastEntityIndex;
-        i += entityLength
-      ) {
-        const mesh = archetypePartition[i + meshIndex] as BitMaskToTypes[BitMasks['mesh']];
-        const cameraSettings = archetypePartition[
-          i + cameraIndex
-        ] as BitMaskToTypes[BitMasks['camera']];
-
-        this.camera.position.lerp(
-          cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
-          1.0 - Math.pow(0.5, timeElapsedS * cameraSettings.lerpCoefficient)
-        );
-
-        this.camera.quaternion.slerp(
-          mesh.quaternion,
-          1.0 - Math.pow(0.5, timeElapsedS * cameraSettings.slerpCoefficient)
-        );
-
-        cameraSettings.idealOffset.set(
-          cameraSettings.position.x,
-          cameraSettings.position.y,
-          cameraSettings.position.z
-        );
-      }
-    }
+    cameraSettings.idealOffset.set(
+      cameraSettings.position.x,
+      cameraSettings.position.y,
+      cameraSettings.position.z
+    );
   }
 }

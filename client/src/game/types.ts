@@ -15,4 +15,14 @@ export type TwoDimensionalArray = [
 ][];
 export type ArchetypePartition = TwoDimensionalArray[number];
 export type EntityInputs = {componentsId: ComponentIds; entities: EntityArray[]};
+export type EntityInput = {entityArray: EntityArray; componentsId: Uint16Array};
 export type ComponentIds = Readonly<Uint16Array>;
+
+export type TickParams = {
+  timeElapsed: number;
+  now: number;
+  partition: ArchetypePartition;
+  idToComponentOffset: ComponentsIndexesOffset;
+  index: number;
+};
+export type ApplyTick = (params: TickParams) => void;

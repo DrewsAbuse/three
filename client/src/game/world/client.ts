@@ -11,9 +11,9 @@ import Stats from 'stats.js';
 import {Scene, WebGLRenderer} from 'three';
 import type {WebGPURenderer} from '../helpers';
 import type {Component} from '../components';
-import type {EntityArray} from './storage.ts';
+import type {EntityArray} from '../types.ts';
+import {componentsId} from '../components';
 import {createSkybox} from '../helpers';
-import {bitMasks} from '../components';
 import {CameraSystem} from '../systems';
 import {SpatialHashGrid} from '../helpers/grid.ts';
 import {World} from './base.ts';
@@ -112,14 +112,13 @@ export class ClientWorld extends World {
     });
   };
 
-  createEntityAndAddToScene(params: {
-    componentsBitMask: number;
-    entityArray: EntityArray;
-    sortedBitMasks: number[];
-  }) {
-    this.storage.createEntity(params);
-    const meshComponentIndex = params.sortedBitMasks.findIndex(
-      bitMask => bitMask === bitMasks.mesh || bitMask === bitMasks.instancedMesh
+  createEntityAndAddToScene(params: {entityArray: EntityArray; componentsId: Uint16Array}) {
+    this.storage.insertEntities({
+      entities: [params.entityArray],
+      componentsId: params.componentsId,
+    });
+    const meshComponentIndex = params.componentsId.findIndex(
+      bitMask => bitMask === componentsId.mesh || bitMask === componentsId.instancedMesh
     );
 
     if (meshComponentIndex === undefined) {
@@ -128,24 +127,27 @@ export class ClientWorld extends World {
     this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
   }
 
-  runSystems(timeElapsed: number) {
+  runSystems(prevTimeElapsed: number) {
     {
-      const timeElapsedS = Math.min(1.0 / 30.0, timeElapsed * 0.001);
+      const timeElapsed = Math.min(1.0 / 30.0, prevTimeElapsed * 0.001);
+      const now = new Date().getTime();
 
       if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
         this.renderSystemUpdateId = this.sceneEntities.updateId[0];
         this.renderSceneSystem();
       }
 
-      this.movementsSystemRunner.update({
-        timeElapsedS,
-        grid: this.grid,
-        archetypePartition: this.storage.getArchetypePartitionByStrictComponentsMask(
-          this.movementsSystemRunner.requiredComponents
-        ),
+      this.storage.applyTickToEntitiesByComponentIds({
+        now,
+        timeElapsed,
+        componentIds: this.movementsSystemRunner.requiredComponents,
+        system: this.movementsSystemRunner,
       });
-      this.cameraSystem.update({
-        timeElapsedS,
+      this.storage.applyTickToEntitiesByComponentIds({
+        now,
+        timeElapsed,
+        componentIds: this.cameraSystem.requiredComponents,
+        system: this.cameraSystem,
       });
     }
   }

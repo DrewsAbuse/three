@@ -1,19 +1,18 @@
 import {Vector3} from 'three';
-import type {BitMaskToTypes, BitMasks} from '../../components';
-import type {SpatialHashGrid} from '../../helpers/grid.ts';
-import type {ArchetypePartition} from '../../world/storage.ts';
-import {bitMasks, movementComponentDataIndexes} from '../../components';
-import {WorldStorage} from '../../world/storage.ts';
+import type {ComponentIdToTypes} from '../../components';
+import type {TickParams} from '../../types.ts';
+import {movementComponentDataIndexes} from '../../components';
+import {componentsId} from '../../components';
 import {CubesMovementInputSystem} from './cubes.ts';
 import {MovementInputSystem} from './input.ts';
 import {MovementAndRotationSystem} from './move.ts';
 
-const SYSTEM_REQUIRED_COMPONENTS = [
-  bitMasks.keysInput,
-  bitMasks.mesh,
-  bitMasks.movement,
-  bitMasks.camera,
-] as const;
+const SYSTEM_REQUIRED_COMPONENTS = new Uint16Array([
+  componentsId.keysInput,
+  componentsId.mesh,
+  componentsId.movement,
+  componentsId.camera,
+]);
 
 export class MovementsSystemRunner {
   requiredComponents = SYSTEM_REQUIRED_COMPONENTS;
@@ -36,92 +35,60 @@ export class MovementsSystemRunner {
     movement: movementComponentDataIndexes,
   } as const;
 
-  update({
-    timeElapsedS,
-    archetypePartition,
-    grid,
-  }: {
-    timeElapsedS: number;
-    archetypePartition: ArchetypePartition | undefined;
-    grid: SpatialHashGrid;
-  }) {
-    if (archetypePartition === undefined) {
-      return;
-    }
+  updateTick({partition, idToComponentOffset, index, timeElapsed, now}: TickParams) {
+    const keysComponentOffset = idToComponentOffset[componentsId.keysInput];
+    const meshComponentOffset = idToComponentOffset[componentsId.mesh];
+    const movementComponentOffset = idToComponentOffset[componentsId.movement];
 
-    const dateMs = new Date().getTime();
+    const movementComponentData = partition[
+      index + movementComponentOffset
+    ] as ComponentIdToTypes[componentsId.movement];
 
-    const lastEntityIndex =
-      archetypePartition[WorldStorage.partitionConstants.lastNotDeletedEntityIndex];
-    const componentsIndexes =
-      archetypePartition[WorldStorage.partitionConstants.componentsIndexesOffset];
-    const entityLength = archetypePartition[WorldStorage.partitionConstants.entityLengthOffset];
+    const rotationVelocity =
+      movementComponentData[this.componentsIndexes.movement.velocityRotation];
+    const rotationAcceleration =
+      movementComponentData[this.componentsIndexes.movement.accelerationRotation];
 
-    const keysComponentOffset = componentsIndexes[bitMasks.keysInput];
-    const meshComponentOffset = componentsIndexes[bitMasks.mesh];
-    const movementComponentOffset = componentsIndexes[bitMasks.movement];
+    const rotationDeceleration =
+      movementComponentData[this.componentsIndexes.movement.decelerationRotation];
+    const moveDeceleration =
+      movementComponentData[this.componentsIndexes.movement.decelerationMove];
 
-    for (
-      let i = WorldStorage.partitionConstants.entityLengthOffset;
-      i < lastEntityIndex;
-      i += entityLength
-    ) {
-      const movementComponentData = archetypePartition[
-        i + movementComponentOffset
-      ] as BitMaskToTypes[BitMasks['movement']];
+    const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
+    const moveAcceleration =
+      movementComponentData[this.componentsIndexes.movement.accelerationMove];
 
-      const rotationVelocity =
-        movementComponentData[this.componentsIndexes.movement.velocityRotation];
-      const rotationAcceleration =
-        movementComponentData[this.componentsIndexes.movement.accelerationRotation];
+    const movementType = movementComponentData[this.componentsIndexes.movement.movementType];
 
-      const rotationDeceleration =
-        movementComponentData[this.componentsIndexes.movement.decelerationRotation];
-      const moveDeceleration =
-        movementComponentData[this.componentsIndexes.movement.decelerationMove];
+    const {keyDownToBoolMap} = partition[
+      index + keysComponentOffset
+    ] as ComponentIdToTypes[componentsId.keysInput];
 
-      const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
-      const moveAcceleration =
-        movementComponentData[this.componentsIndexes.movement.accelerationMove];
+    this.movementInputSystem[movementType].update({
+      timeElapsedS: timeElapsed,
+      props: {
+        keyDownToBoolMap,
+        rotationVelocity,
+        rotationAcceleration,
+        moveVelocity,
+        moveAcceleration,
+        dateMs: now,
+      },
+    });
 
-      const movementType = movementComponentData[movementComponentDataIndexes.movementType];
+    const mesh = partition[index + meshComponentOffset] as ComponentIdToTypes[componentsId.mesh];
 
-      const {keyDownToBoolMap} = archetypePartition[
-        i + keysComponentOffset
-      ] as BitMaskToTypes[BitMasks['keysInput']];
+    this.positionBefore.copy(mesh.position);
 
-      this.movementInputSystem[movementType].update({
-        timeElapsedS,
-        props: {
-          keyDownToBoolMap,
-          rotationVelocity,
-          rotationAcceleration,
-          moveVelocity,
-          moveAcceleration,
-          dateMs,
-        },
-      });
-
-      const mesh = archetypePartition[i + meshComponentOffset] as BitMaskToTypes[BitMasks['mesh']];
-
-      this.positionBefore.copy(mesh.position);
-
-      this.movementSystem.update({
-        timeElapsedS,
-        props: {
-          mesh,
-          rotationVelocity,
-          rotationDeceleration,
-          moveVelocity,
-          moveDeceleration,
-        },
-      });
-
-      if (this.positionBefore.equals(mesh.position)) {
-        continue;
-      }
-
-      grid.move(mesh, this.positionBefore);
-    }
+    this.movementSystem.update({
+      timeElapsedS: timeElapsed,
+      props: {
+        mesh,
+        rotationVelocity,
+        rotationDeceleration,
+        moveVelocity,
+        moveDeceleration,
+      },
+    });
   }
 }

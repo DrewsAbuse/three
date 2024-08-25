@@ -1,11 +1,11 @@
 import type {
-  ArchetypePartition,
   ComponentIds,
   ComponentsIndexesOffset,
   EntityArray,
   EntityInputs,
   TwoDimensionalArray,
 } from '../types.ts';
+import type {System} from '../systems/base.ts';
 import {InvertedIndex} from '../helpers/search.ts';
 import {ENTITY_OFFSETS} from '../entities';
 
@@ -208,14 +208,14 @@ export class ArchetypeStorage {
 
   applyTickToEntitiesByComponentIds({
     componentIds,
-    applyTick,
+    system,
+    timeElapsed,
+    now,
   }: {
     componentIds: ComponentIds;
-    applyTick: (
-      partition: ArchetypePartition,
-      idToComponentOffset: ComponentsIndexesOffset,
-      index: number
-    ) => void;
+    system: System;
+    timeElapsed: number;
+    now: number;
   }): void {
     const archetypeIndexes = this.archetypesPrefixTree.search(componentIds);
 
@@ -238,10 +238,18 @@ export class ArchetypeStorage {
 
         for (
           let i = this.partitionConstants.entityStartOffset;
-          i < lastLiveEntityIndex;
+          i <= lastLiveEntityIndex;
           i += entityLength
         ) {
-          applyTick(partition, idToComponentOffset, i);
+          console.log('entity tick');
+
+          system.updateTick({
+            index: i,
+            idToComponentOffset,
+            timeElapsed,
+            partition,
+            now,
+          });
         }
       }
     }
