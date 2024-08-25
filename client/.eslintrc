@@ -1,12 +1,16 @@
 {
   "ignorePatterns": [
-    "package-lock.json"
+    "package-lock.json",
+    "!node_modules/",
+    "node_modules/*",
+    "./*"
   ],
   "root": true,
   "extends": [
     "@shelf/eslint-config/typescript"
   ],
   "rules": {
+    "multiline-ternary": "off",
     "jest/no-deprecated-functions": "off"
   }
 }
