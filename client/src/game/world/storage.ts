@@ -241,8 +241,6 @@ export class ArchetypeStorage {
           i <= lastLiveEntityIndex;
           i += entityLength
         ) {
-          console.log('entity tick');
-
           system.updateTick({
             index: i,
             idToComponentOffset,

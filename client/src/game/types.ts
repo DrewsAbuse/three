@@ -25,4 +25,4 @@ export type TickParams = {
   idToComponentOffset: ComponentsIndexesOffset;
   index: number;
 };
-export type ApplyTick = (params: TickParams) => void;
+export type ExtractRecordValue<T> = T extends infer U ? U[keyof U] : never;

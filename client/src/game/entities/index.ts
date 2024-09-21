@@ -1,7 +1,7 @@
 import type {ComponentLabelToTypes} from '../components';
 import type {EntityInputs} from '../types.ts';
 import {componentsId} from '../components';
-import {getAutoIncrementIdGenerator} from '../helpers';
+import {autoIncrementId} from '../helpers';
 
 export const ENTITY_OFFSETS = {
   entityIdOffset: 0,
@@ -9,8 +9,6 @@ export const ENTITY_OFFSETS = {
   entityDirtyOffset: 2,
   entityComponentsOffset: 3,
 } as const;
-
-const generateEntityId = getAutoIncrementIdGenerator();
 
 export const createEntity = <T extends ComponentLabelToTypes>(
   componentsWithData: Partial<T>[]
@@ -26,7 +24,7 @@ export const createEntity = <T extends ComponentLabelToTypes>(
       )
     ),
     entities: componentsWithData.map(componentData => [
-      generateEntityId(),
+      autoIncrementId(),
       0,
       0,
       ...keys.map(key => componentData[key]!),

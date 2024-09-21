@@ -1,17 +1,33 @@
-import type {Camera} from 'three';
+import {AxesHelper, ConeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera} from 'three';
 import type {TickParams} from '../types.ts';
 import type {ComponentIdToTypes} from '../components';
 import {componentsId} from '../components';
 import {System} from './base.ts';
 
-export class CameraSystem extends System {
-  private camera: Camera;
+const FOV = 100;
+const ASPECT = window.innerWidth / window.innerHeight;
+const NEAR = 0.2;
+const FAR = 3000;
 
-  constructor(cameraInstance: Camera) {
+const camera = new PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
+
+//Debug
+const sphereGeometry = new ConeGeometry(5, 10, 25);
+const sphereMaterial = new MeshBasicMaterial({color: 0xff0000});
+const sphereMesh = new Mesh(sphereGeometry, sphereMaterial);
+sphereMesh.rotation.x = Math.PI / 2;
+const cameraAxisHelper = new AxesHelper(-10);
+
+camera.add(cameraAxisHelper);
+camera.add(sphereMesh);
+
+export class CameraSystem extends System {
+  camera = camera;
+
+  constructor() {
     super({
       requiredComponents: new Uint16Array([componentsId.camera, componentsId.mesh]),
     });
-    this.camera = cameraInstance;
   }
 
   updateTick({timeElapsed, partition, index, idToComponentOffset}: TickParams) {

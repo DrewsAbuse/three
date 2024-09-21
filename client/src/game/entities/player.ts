@@ -3,6 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import dat from 'dat.gui';
 import type {EntityInput} from '../types.ts';
 import type {ComponentIdToTypes} from '../components';
+import {movementComponentDataIndexes} from '../components';
 import {componentsId} from '../components';
 import {Component, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
@@ -36,9 +37,8 @@ export const createPlayer = (): EntityInput => {
   });
 
   const moveData: ComponentIdToTypes[componentsId.movement] = [
-    'air-craft',
     new Vector3(),
-    new Vector3(0, 0, 2),
+    new Vector3(0, 0, 16),
     new Vector3(0, 0, -3),
     new Vector3(),
     new Vector3(2, 1, 4),
@@ -50,15 +50,31 @@ export const createPlayer = (): EntityInput => {
   const accelerationFolder = playerMoveFolder.addFolder('Acceleration');
   const decelerationFolder = playerMoveFolder.addFolder('Deceleration');
 
-  accelerationFolder.add(moveData[2], 'z', 0, 20).name('forward');
-  accelerationFolder.add(moveData[5], 'x', 0, 10).name('pitch');
-  accelerationFolder.add(moveData[5], 'y', 0, 10).name('yaw');
-  accelerationFolder.add(moveData[5], 'z', 0, 10).name('roll');
+  accelerationFolder
+    .add(moveData[movementComponentDataIndexes.accelerationMove], 'z', 0, 20)
+    .name('forward');
+  accelerationFolder
+    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'x', 0, 10)
+    .name('pitch');
+  accelerationFolder
+    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'y', 0, 10)
+    .name('yaw');
+  accelerationFolder
+    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'z', 0, 10)
+    .name('roll');
 
-  decelerationFolder.add(moveData[3], 'z', -35, 0).name('forward');
-  decelerationFolder.add(moveData[6], 'x', -20, 0).name('pitch');
-  decelerationFolder.add(moveData[6], 'y', -15, 0).name('yaw');
-  decelerationFolder.add(moveData[6], 'z', -40, 0).name('roll');
+  decelerationFolder
+    .add(moveData[movementComponentDataIndexes.decelerationMove], 'z', -35, 0)
+    .name('forward');
+  decelerationFolder
+    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'x', -20, 0)
+    .name('pitch');
+  decelerationFolder
+    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'y', -15, 0)
+    .name('yaw');
+  decelerationFolder
+    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'z', -40, 0)
+    .name('roll');
 
   const movementComponent = new Component({
     data: moveData,
@@ -83,34 +99,6 @@ export const createPlayer = (): EntityInput => {
 
   return {
     componentsId: new Uint16Array(sortedComponents.map(({id}) => id)),
-    entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
-  };
-};
-
-export const createCubeEntity = (mesh: Mesh): EntityInput => {
-  const meshComponent = new Component({
-    data: mesh,
-    id: componentsId.mesh,
-  });
-  const moveData: ComponentIdToTypes[componentsId.movement] = [
-    'cube',
-    new Vector3(),
-    new Vector3(0, 0, 2),
-    new Vector3(0, 0, -3),
-    new Vector3(),
-    new Vector3(2, 1, 4),
-    new Vector3(-4, -3, -12),
-  ];
-  const movementComponent = new Component({
-    data: moveData,
-    id: componentsId.movement,
-  });
-
-  const components = [meshComponent, movementComponent];
-  const sortedComponents = components.sort((a, b) => a.id - b.id);
-
-  return {
-    componentsId: new Uint16Array(sortedComponents.map(component => component.id)),
     entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
   };
 };

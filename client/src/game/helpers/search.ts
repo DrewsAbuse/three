@@ -1,33 +1,50 @@
-export class InvertedIndex {
-  private index: Map<number, number[]> = new Map();
+class BitSet {
+  private bits: Uint32Array;
 
-  insert(array: Readonly<Uint16Array>, id: number): void {
-    for (const value of array) {
-      if (!this.index.has(value)) {
-        this.index.set(value, []);
-      }
-
-      const ids = this.index.get(value);
-
-      if (ids && !ids.includes(id)) {
-        ids.push(id);
-      }
-    }
+  constructor(size: number) {
+    this.bits = new Uint32Array(Math.ceil(size / 32));
   }
 
-  search(mask: Readonly<Uint16Array>): readonly number[] {
-    let result: number[] = [];
-    for (const value of mask) {
-      const ids = this.index.get(value);
+  set(index: number) {
+    const wordIndex = index >> 5; // index / 32
+    const bitIndex = index & 31; // index % 32
+    this.bits[wordIndex] |= 1 << bitIndex;
+  }
 
-      if (!ids) {
-        return []; // Value not found, return empty result
-      }
+  get(index: number): boolean {
+    const wordIndex = index >> 5;
+    const bitIndex = index & 31;
 
-      if (result.length === 0) {
-        result = ids.slice(); // Clone the array
-      } else {
-        result = result.filter(id => ids.includes(id));
+    return !!(this.bits[wordIndex] & (1 << bitIndex));
+  }
+
+  and(other: BitSet): BitSet {
+    const result = new BitSet(this.bits.length * 32);
+    for (let i = 0; i < this.bits.length; i++) {
+      result.bits[i] = this.bits[i] & other.bits[i];
+    }
+
+    return result;
+  }
+
+  andNot(other: BitSet): BitSet {
+    const result = new BitSet(this.bits.length * 32);
+    for (let i = 0; i < this.bits.length; i++) {
+      result.bits[i] = this.bits[i] & ~other.bits[i];
+    }
+
+    return result;
+  }
+
+  isEmpty(): boolean {
+    return this.bits.every(word => word === 0);
+  }
+
+  toArray(): number[] {
+    const result: number[] = [];
+    for (let i = 0; i < this.bits.length * 32; i++) {
+      if (this.get(i)) {
+        result.push(i);
       }
     }
 
@@ -35,32 +52,79 @@ export class InvertedIndex {
   }
 }
 
-//
-// const some = new InvertedIndex();
-//
-// // Insertions
-// some.insert(new Uint32Array([1, 2, 3, 4, 5, 6, 7, 8]), 1);
-// some.insert(new Uint32Array([1, 2, 3, 4, 6, 7, 8, 9]), 2);
-// some.insert(new Uint32Array([1, 2, 3, 5, 6, 7, 8, 10]), 3);
-// some.insert(new Uint32Array([1, 2, 3, 5, 6, 7, 8, 10, 11]), 4);
-// some.insert(new Uint32Array([1, 2, 3, 5, 6, 7, 8, 10, 11, 12]), 5);
-// some.insert(new Uint32Array([7, 8, 10, 11, 12, 55, 123, 132, 222, 333]), 6);
-//
-// // Searches
-// const mask = new Uint32Array([1, 2, 3, 4]);
-// const result = some.search(mask);
-// console.log(result); // Output: [1, 2]
-//
-// const mask2 = new Uint32Array([8, 10, 11]);
-// const result2 = some.search(mask2);
-// console.log(result2); // Output: [4]
-//
-// const mask3 = new Uint32Array([55, 333]);
-// const result3 = some.search(mask3);
-// console.log(result3); // Output: [6]
-//
-// const mask4 = new Uint32Array([7, 222]);
-// const result4 = some.search(mask4);
-// console.log(result4); // Output: [6]
-//
-//
+export class InvertedIndex {
+  private index: Map<number, BitSet> = new Map();
+  private maxId: number = 0;
+
+  insert(array: Readonly<Uint16Array>, id: number): void {
+    this.maxId = Math.max(this.maxId, id);
+    for (const value of array) {
+      if (!this.index.has(value)) {
+        this.index.set(value, new BitSet(this.maxId + 1));
+      }
+      this.index.get(value)!.set(id);
+    }
+  }
+
+  emptyContainer: number[] = [];
+
+  search(includeComponents: Readonly<Uint16Array>): readonly number[] {
+    let result: BitSet | null = null;
+
+    for (const value of includeComponents) {
+      const ids = this.index.get(value);
+
+      if (!ids) {
+        return [];
+      }
+
+      if (result === null) {
+        result = ids;
+      } else {
+        result = result.and(ids);
+        if (result.isEmpty()) {
+          return this.emptyContainer;
+        }
+      }
+    }
+
+    return result ? result.toArray() : this.emptyContainer;
+  }
+
+  searchWithExclude(
+    includeComponents: Readonly<Uint16Array>,
+    excludeComponents: Readonly<Uint16Array>
+  ): readonly number[] {
+    let result: BitSet | null = null;
+
+    for (const value of includeComponents) {
+      const ids = this.index.get(value);
+
+      if (!ids) {
+        return [];
+      }
+
+      if (result === null) {
+        result = ids;
+      } else {
+        result = result.and(ids);
+        if (result.isEmpty()) {
+          return this.emptyContainer;
+        }
+      }
+    }
+
+    for (const value of excludeComponents) {
+      const ids = this.index.get(value);
+
+      if (ids) {
+        result = result!.andNot(ids);
+        if (result.isEmpty()) {
+          return this.emptyContainer;
+        }
+      }
+    }
+
+    return result ? result.toArray() : this.emptyContainer;
+  }
+}

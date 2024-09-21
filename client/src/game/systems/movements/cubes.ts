@@ -19,6 +19,8 @@ export class CubesMovementInputSystem extends SubSystem {
   }) {
     //Each 10 seconds change direction
     if (dateMs - this.previousDateMs > 10000) {
+      console.log('change direction');
+
       this.previousDateMs = dateMs;
       moveVelocity.multiply(this.createRandomDirectionVector());
     }

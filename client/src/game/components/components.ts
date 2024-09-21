@@ -11,7 +11,9 @@ import type {
   Vector3,
   Vector4,
 } from 'three';
-import type {KeysInput} from './';
+import type {KeysInput, MovementComponentData} from './';
+import type {CameraComponentData} from './camera.ts';
+import type {ExtractRecordValue} from '../types.ts';
 
 export class Component<T extends ComponentKeys = ComponentKeys> {
   public data: ComponentIdToTypes[T];
@@ -24,19 +26,6 @@ export class Component<T extends ComponentKeys = ComponentKeys> {
     this.key = componentIdToLabel[id];
   }
 }
-
-export type ExtractRecordValue<T> = T extends infer U ? U[keyof U] : never;
-
-export const bitMasks = {
-  keysInput: 2,
-  mouse: 4,
-  mesh: 8,
-  movement: 16, //[velocityMove, accelerationMove, decelerationMove, velocityRotation accelerationRotation, decelerationRotation] [x y z, x y z, x y z, x y z, x y z, x y z]
-  renderable: 32,
-  camera: 64,
-  eventsContainer: 128,
-  instancedMesh: 256,
-} as const;
 
 export enum componentsId {
   keysInput = 1,
@@ -97,25 +86,6 @@ export type ComponentLabelToTypes = {
   instancedMesh: InstancedMesh;
   [key: string]: ComponentData | SingletonComponentsData;
 };
-
-export type CameraComponentData = {
-  position: Vector3;
-  quaternion: Quaternion;
-  idealOffset: Vector3;
-  lookAt: Object3D;
-  lerpCoefficient: number;
-  slerpCoefficient: number;
-};
-
-export type MovementComponentData = [
-  'air-craft' | 'cube', // type
-  Vector3, // velocityMove
-  Vector3, // accelerationMove
-  Vector3, // decelerationMove
-  Vector3, // velocityRotation
-  Vector3, // accelerationRotation
-  Vector3, // decelerationRotation
-];
 
 export type SingletonComponentsData = KeysInput;
 

@@ -1,6 +1,88 @@
 import {type Mesh, Quaternion, Vector3} from 'three';
-import {SubSystem} from '../base.ts';
+import type {ComponentIdToTypes} from '../../components';
+import type {TickParams} from '../../types.ts';
 import {normalizedVec3} from '../../helpers';
+import {SubSystem} from '../base.ts';
+import {movementComponentDataIndexes} from '../../components';
+import {componentsId} from '../../components';
+import {MovementInputSystem} from './input.ts';
+
+const SYSTEM_REQUIRED_COMPONENTS = new Uint16Array([
+  componentsId.keysInput,
+  componentsId.mesh,
+  componentsId.movement,
+  componentsId.camera,
+]);
+
+export class MovementsWithKeysInputSystemRunner {
+  requiredComponents = SYSTEM_REQUIRED_COMPONENTS;
+  movementInputSystem: {
+    'air-craft': MovementInputSystem;
+  };
+  movementSystem: MovementAndRotationSystem;
+  positionBefore: Vector3 = new Vector3();
+
+  constructor() {
+    this.movementSystem = new MovementAndRotationSystem();
+    this.movementInputSystem = {
+      'air-craft': new MovementInputSystem(),
+    };
+  }
+
+  componentsIndexes = {
+    movement: movementComponentDataIndexes,
+  } as const;
+
+  updateTick({partition, idToComponentOffset, index, timeElapsed}: TickParams) {
+    const keysComponentOffset = idToComponentOffset[componentsId.keysInput];
+    const meshComponentOffset = idToComponentOffset[componentsId.mesh];
+    const movementComponentOffset = idToComponentOffset[componentsId.movement];
+
+    const movementComponentData = partition[
+      index + movementComponentOffset
+    ] as ComponentIdToTypes[componentsId.movement];
+
+    const rotationVelocity =
+      movementComponentData[this.componentsIndexes.movement.velocityRotation];
+    const rotationAcceleration =
+      movementComponentData[this.componentsIndexes.movement.accelerationRotation];
+
+    const rotationDeceleration =
+      movementComponentData[this.componentsIndexes.movement.decelerationRotation];
+    const moveDeceleration =
+      movementComponentData[this.componentsIndexes.movement.decelerationMove];
+
+    const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
+    const moveAcceleration =
+      movementComponentData[this.componentsIndexes.movement.accelerationMove];
+
+    const {keyDownToBoolMap} = partition[
+      index + keysComponentOffset
+    ] as ComponentIdToTypes[componentsId.keysInput];
+
+    this.movementInputSystem['air-craft'].update({
+      timeElapsedS: timeElapsed,
+      props: {
+        keyDownToBoolMap,
+        rotationVelocity,
+        rotationAcceleration,
+        moveVelocity,
+        moveAcceleration,
+      },
+    });
+
+    this.movementSystem.update({
+      timeElapsedS: timeElapsed,
+      props: {
+        mesh: partition[index + meshComponentOffset] as ComponentIdToTypes[componentsId.mesh],
+        rotationVelocity,
+        rotationDeceleration,
+        moveVelocity,
+        moveDeceleration,
+      },
+    });
+  }
+}
 
 export class MovementAndRotationSystem extends SubSystem {
   frameDeceleration = new Vector3();
@@ -25,7 +107,6 @@ export class MovementAndRotationSystem extends SubSystem {
       rotationVelocity.y * rotationDeceleration.y * timeElapsedS,
       rotationVelocity.z * rotationDeceleration.z * timeElapsedS
     );
-    //const alphaT = 1.0 - Math.pow(0.5, timeElapsedS * 10);
     rotationVelocity.add(this.frameDeceleration);
 
     this.quaternionContainer.setFromAxisAngle(
