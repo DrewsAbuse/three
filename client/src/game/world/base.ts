@@ -1,5 +1,4 @@
 import {MovementsWithKeysInputSystemRunner} from '../systems';
-import {CubeSnackSystem} from '../systems/cubs-snack.ts';
 import {ArchetypeStorage} from './storage.ts';
 
 export abstract class World {
@@ -8,7 +7,7 @@ export abstract class World {
 
   //Systems
   movementsSystemRunner = new MovementsWithKeysInputSystemRunner();
-  cubeSnackSystem = new CubeSnackSystem();
+  //cubeSnackSystem = new CubeSnackSystem();
 
   abstract runSystems(timeElapsed: number): void;
 }

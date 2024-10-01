@@ -1,9 +1,10 @@
 import {AmbientLight, Group, InstancedMesh, Mesh, Object3D, PerspectiveCamera} from 'three';
 import Stats from 'stats.js';
-import {Scene, WebGLRenderer} from 'three';
-import type {WebGPURenderer} from '../helpers';
+import {Scene} from 'three';
+import type {WebGLRenderer} from 'three';
 import type {Component} from '../components';
 import type {EntityArray} from '../types.ts';
+import {WebGPURenderer} from '../helpers';
 import {componentsId} from '../components';
 import {createSkybox} from '../helpers';
 import {CameraSystem} from '../systems';
@@ -32,7 +33,7 @@ export class ClientWorld extends World {
   constructor() {
     super();
 
-    this.renderer = new WebGLRenderer();
+    this.renderer = new WebGPURenderer();
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
@@ -64,25 +65,31 @@ export class ClientWorld extends World {
     this.scene.add(light);
   }
 
-  hz50 = 0.02;
-
-  requestAnimationFrameWithElapsedTime = (
+  fixedTimeStep = 16.67;
+  requestAnimationFrameFixedTimeStep = (
     previousRAFFixedUpdate: number = 0,
-    acc = 0,
+    accumulator = 0,
     previousRAF: number = 0
-  ) => {
+  ) =>
     requestAnimationFrame(t => {
       this.stats.begin();
-      this.runSystems(t - previousRAF);
-      this.renderer.render(this.scene, this.cameraSystem.camera);
+      const deltaTime = t - previousRAF;
       previousRAF = t;
+      accumulator += deltaTime;
+
+      // Run fixed time updates
+      while (accumulator >= this.fixedTimeStep) {
+        this.runSystems(this.fixedTimeStep);
+        accumulator -= this.fixedTimeStep;
+      }
+
+      // Render the frame
+      this.renderer.render(this.scene, this.cameraSystem.camera);
       this.stats.end();
 
-      setTimeout(() => {
-        this.requestAnimationFrameWithElapsedTime(previousRAFFixedUpdate, acc, previousRAF);
-      }, 1);
+      // Recursively call requestAnimationFrame
+      this.requestAnimationFrameFixedTimeStep(previousRAFFixedUpdate, accumulator, previousRAF);
     });
-  };
 
   createEntityAndAddToScene(params: {entityArray: EntityArray; componentsId: Uint16Array}) {
     this.storage.insertEntities({
@@ -121,12 +128,16 @@ export class ClientWorld extends World {
         componentIds: this.cameraSystem.requiredComponents,
         system: this.cameraSystem,
       });
-      this.storage.applyTickToEntitiesByComponentIds({
-        now,
-        timeElapsed,
-        componentIds: this.cubeSnackSystem.requiredComponents,
-        system: this.cubeSnackSystem,
-      });
+
+      //
+      // this.storage.applyTickToEntitiesByComponentIds({
+      // now,
+      // timeElapsed,
+      // componentIds: this.cubeSnackSystem.requiredComponents,
+      // system: this.cubeSnackSystem,
+      // });
+      //
+      //
     }
   }
 

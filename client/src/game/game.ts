@@ -9,7 +9,7 @@ const world = new ClientWorld();
 
 world.createEntityAndAddToScene(createPlayer());
 world.createEntityAndAddToScene(createBox());
-world.requestAnimationFrameWithElapsedTime();
+world.requestAnimationFrameFixedTimeStep();
 const inst = createInstancedMeshCloudCube({
   attributes: {instanceCount: 1000},
   cloudScale: 800,
