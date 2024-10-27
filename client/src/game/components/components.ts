@@ -13,7 +13,50 @@ import type {
 } from 'three';
 import type {KeysInput, MovementComponentData} from './';
 import type {CameraComponentData} from './camera.ts';
-import type {ExtractRecordValue} from '../types.ts';
+import type {ExtractRecordValue} from '../types';
+
+export enum componentIds {
+  keysInput = 1,
+  mouse,
+  mesh,
+  movement, //[velocityMove, accelerationMove, decelerationMove, velocityRotation accelerationRotation, decelerationRotation] [x y z, x y z, x y z, x y z, x y z, x y z]
+  renderable,
+  camera,
+  eventsContainer,
+  instancedMesh,
+  uiWrite,
+  uiRead,
+}
+
+export const componentIdToLabel = {
+  1: 'keysInput',
+  2: 'mouse',
+  3: 'mesh',
+  4: 'movement',
+  5: 'renderable',
+  6: 'camera',
+  7: 'eventsContainer',
+  8: 'instancedMesh',
+  9: 'uiWrite',
+  10: 'uiRead',
+} as const;
+
+export type ComponentIdToTypes = {
+  1: KeysInput;
+  2: Vector2;
+  3: Mesh;
+  4: MovementComponentData;
+  5: Renderable; // renderable
+  6: CameraComponentData;
+  //128: 'eventsContainer';
+  8: InstancedMesh;
+  9: UIWrite;
+  10: UIRead;
+  [key: number]: ComponentsData | SingletonComponentsData;
+};
+
+type ComponentKeys = keyof typeof componentIdToLabel;
+type Labels = ExtractRecordValue<typeof componentIdToLabel>;
 
 export class Component<T extends ComponentKeys = ComponentKeys> {
   public data: ComponentIdToTypes[T];
@@ -27,69 +70,33 @@ export class Component<T extends ComponentKeys = ComponentKeys> {
   }
 }
 
-export enum componentsId {
-  keysInput = 1,
-  mouse,
-  mesh,
-  movement, //[velocityMove, accelerationMove, decelerationMove, velocityRotation accelerationRotation, decelerationRotation] [x y z, x y z, x y z, x y z, x y z, x y z]
-  renderable,
-  camera,
-  eventsContainer,
-  instancedMesh,
-}
+type SingletonComponentsData = KeysInput;
 
-export const componentIdToLabel = {
-  1: 'keysInput',
-  2: 'mouse',
-  3: 'mesh',
-  4: 'movement',
-  5: 'renderable',
-  6: 'camera',
-  7: 'eventsContainer',
-  8: 'instancedMesh',
-} as const;
-
-type ComponentKeys = keyof typeof componentIdToLabel;
-
-type Labels = ExtractRecordValue<typeof componentIdToLabel>;
-
-export const componentLabels = (() =>
-  Object.entries(componentIdToLabel).reduce<Labels[]>(
-    (acc, [, label]) => {
-      acc.push(label);
-
-      return acc;
-    },
-    ['empty'] as unknown as Labels[]
-  ))();
-
-export type ComponentIdToTypes = {
-  1: KeysInput;
-  2: Vector2;
-  3: Mesh;
-  4: MovementComponentData;
-  5: boolean;
-  6: CameraComponentData;
-  //128: 'eventsContainer';
-  8: InstancedMesh;
-  [key: number]: ComponentData | SingletonComponentsData;
+type SignalId = string;
+type SignalUpdateId = number;
+type UIWrite = {
+  signalIds: SignalId[];
+  signalIdToUpdateId: Record<SignalId, SignalUpdateId>;
 };
+type UIRead = true;
+
+type Renderable = true;
 
 export type ComponentLabelToTypes = {
   keysInput: KeysInput;
   mouse: Vector2;
   mesh: Mesh;
   movement: MovementComponentData;
-  renderable: boolean;
+  renderable: Renderable;
   camera: CameraComponentData;
   //128: 'eventsContainer';
   instancedMesh: InstancedMesh;
-  [key: string]: ComponentData | SingletonComponentsData;
+  uiWrite: UIWrite;
+  uiRead: UIRead;
+  [key: string]: ComponentsData | SingletonComponentsData;
 };
 
-export type SingletonComponentsData = KeysInput;
-
-export type ComponentData =
+export type ComponentsData =
   | KeysInput
   | MovementComponentData
   | CameraComponentData
@@ -111,4 +118,5 @@ export type ComponentData =
       y: number;
     }[]
   | string[]
-  | InstancedMesh;
+  | InstancedMesh
+  | UIWrite;

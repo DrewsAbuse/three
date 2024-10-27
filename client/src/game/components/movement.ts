@@ -1,12 +1,20 @@
 import type {Vector3} from 'three';
 
-export type MovementComponentData = readonly [
-  Vector3, // velocityMove
-  Vector3, // accelerationMove
-  Vector3, // decelerationMove
-  Vector3, // velocityRotation
-  Vector3, // accelerationRotation
-  Vector3, // decelerationRotation
+type MoveVelocity = Vector3;
+type MoveAcceleration = Vector3;
+type MoveDeceleration = Vector3;
+
+type RotationVelocity = Vector3;
+type RotationAcceleration = Vector3;
+type RotationDeceleration = Vector3;
+
+export type MovementComponentData = [
+  MoveVelocity,
+  MoveAcceleration,
+  MoveDeceleration,
+  RotationVelocity,
+  RotationAcceleration,
+  RotationDeceleration,
 ];
 
 export const movementComponentDataIndexes = {

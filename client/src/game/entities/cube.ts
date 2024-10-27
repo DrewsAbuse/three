@@ -1,7 +1,7 @@
 import {BoxGeometry, Mesh, MeshBasicMaterial, Vector3} from 'three';
-import type {EntityInput} from '../types.ts';
+import type {EntityInput} from '../types';
 import type {ComponentIdToTypes} from '../components';
-import {Component, componentsId} from '../components';
+import {Component, componentIds} from '../components';
 import {autoIncrementId} from '../helpers';
 
 //TODO: FIX MEMORY ALLOCATION - Too many arrays being created for components
@@ -12,7 +12,7 @@ export const createBox = (): EntityInput => {
 
   const meshComponent = new Component({
     data: boxMesh,
-    id: componentsId.mesh,
+    id: componentIds.mesh,
   });
   const movementComponent = new Component({
     data: [
@@ -23,7 +23,7 @@ export const createBox = (): EntityInput => {
       new Vector3(2, 1, 4),
       new Vector3(-4, -3, -12),
     ],
-    id: componentsId.movement,
+    id: componentIds.movement,
   });
 
   const components = [meshComponent, movementComponent];
@@ -38,9 +38,9 @@ export const createBox = (): EntityInput => {
 export const createCubeEntity = (mesh: Mesh): EntityInput => {
   const meshComponent = new Component({
     data: mesh,
-    id: componentsId.mesh,
+    id: componentIds.mesh,
   });
-  const moveData: ComponentIdToTypes[componentsId.movement] = [
+  const moveData: ComponentIdToTypes[componentIds.movement] = [
     new Vector3(),
     new Vector3(0, 0, 2),
     new Vector3(0, 0, -3),
@@ -50,7 +50,7 @@ export const createCubeEntity = (mesh: Mesh): EntityInput => {
   ];
   const movementComponent = new Component({
     data: moveData,
-    id: componentsId.movement,
+    id: componentIds.movement,
   });
 
   const components = [meshComponent, movementComponent];

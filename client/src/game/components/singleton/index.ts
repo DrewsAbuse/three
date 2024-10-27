@@ -1,4 +1,4 @@
-import {Component, componentsId} from '../components.ts';
+import {Component, componentIds} from '../components.ts';
 
 export type KeysInput = {
   keyDownToBoolMap: Map<string, boolean>;
@@ -28,7 +28,7 @@ const keysInput = ((): KeysInput => {
 })();
 
 export const keysInputComponent = new Component({
-  id: componentsId.keysInput,
+  id: componentIds.keysInput,
   data: keysInput,
 });
 

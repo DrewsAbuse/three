@@ -7,7 +7,7 @@ import {
   createRandomRotationMatrix,
 } from './inst-mesh.ts';
 import {createSkybox} from './skybox.ts';
-import {WebGPURenderer} from './web-gup.ts';
+import {WebGPURenderer, webGPURenderer} from './web-gup.ts';
 
 export {
   createInstancedMeshCloudCube,
@@ -16,6 +16,7 @@ export {
   createInstMeshWithRandPositionOffset,
   createRandomRotationMatrix,
   createSkybox,
+  webGPURenderer,
   WebGPURenderer,
 };
 

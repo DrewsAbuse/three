@@ -4,8 +4,9 @@ import type {
   EntityArray,
   EntityInputs,
   TwoDimensionalArray,
-} from '../types.ts';
+} from '../types';
 import type {System} from '../systems/base.ts';
+import type {ComponentIdToTypes} from '../components';
 import {InvertedIndex} from '../helpers/search.ts';
 import {ENTITY_OFFSETS} from '../entities';
 
@@ -28,6 +29,14 @@ export class ArchetypeStorage {
     fillIndex: 0,
   } as const;
 
+  private entityIdToIndexes = new Map<
+    number,
+    {
+      archetypeIndex: number;
+      partitionIndex: number;
+    }
+  >();
+
   private entityConstants = ENTITY_OFFSETS;
 
   private archetypeConstants = {
@@ -42,24 +51,58 @@ export class ArchetypeStorage {
     this.archetypesPrefixTree = new InvertedIndex();
   }
 
-  public insertEntities({entities, componentsId}: EntityInputs): {
+  public invokeCallbackOnEntityComponent(
+    id: number,
+    callback: (entity: ComponentIdToTypes) => void
+  ): void {
+    const entityIndexes = this.entityIdToIndexes.get(id);
+
+    if (entityIndexes === undefined) {
+      console.error(`Entity with id ${id} not found. entityIndexes === undefined`);
+
+      return;
+    }
+
+    const archetype = this.archetypes[entityIndexes.archetypeIndex];
+    const partition = archetype.partitions[entityIndexes.partitionIndex];
+    const entityIndex = archetype.entityIdToIndex.get(id);
+    const idToComponentOffset = partition[this.partitionConstants.componentsIndexesOffset];
+
+    if (entityIndex === undefined) {
+      console.error(`Entity with id ${id} not found. entityIndex === undefined`);
+
+      return;
+    }
+
+    const entityRecord: ComponentIdToTypes = {} as unknown as ComponentIdToTypes;
+
+    for (const componentId in idToComponentOffset) {
+      const componentIndex = idToComponentOffset[componentId] + entityIndex;
+
+      entityRecord[componentId] = partition[componentIndex] as ComponentIdToTypes[number];
+    }
+
+    callback(entityRecord);
+  }
+
+  public insertEntities({entities, componentIds}: EntityInputs): {
     archetypeIndex: number;
     partitionIndex: number;
   } {
-    const archetypeIndexes = this.archetypesPrefixTree.search(componentsId);
+    const archetypeIndexes = this.archetypesPrefixTree.search(componentIds);
     const archetypeForInsertIndex = archetypeIndexes[this.archetypeConstants.fillIndex];
 
     if (archetypeIndexes.length === 0) {
       return this.createArchetype({
         entities,
-        componentsId,
+        componentIds,
       });
     }
 
     const entityLength = entities[0].length;
 
     const archetype = this.archetypes[archetypeForInsertIndex];
-    const partitionIndexes = archetype.componentsPartitionIndex.search(componentsId);
+    const partitionIndexes = archetype.componentsPartitionIndex.search(componentIds);
 
     const partitionForInsertIndex = partitionIndexes.find(
       partitionIndex =>
@@ -73,7 +116,7 @@ export class ArchetypeStorage {
         entities,
         entityLength,
         archetype,
-        componentsId,
+        componentIds,
         newPartitionIndex,
         archetypeForInsertIndex,
       });
@@ -90,6 +133,8 @@ export class ArchetypeStorage {
       entities,
       lastNotDeletedEntityOffset: entities.length * entityLength - entityLength,
       partition,
+      partitionForInsertIndex,
+      archetypeForInsertIndex,
     });
 
     return {
@@ -98,7 +143,7 @@ export class ArchetypeStorage {
     };
   }
 
-  private createArchetype({entities, componentsId}: EntityInputs): {
+  private createArchetype({entities, componentIds}: EntityInputs): {
     archetypeIndex: number;
     partitionIndex: number;
   } {
@@ -119,7 +164,7 @@ export class ArchetypeStorage {
       entities,
       entityLength,
       archetype: archetype,
-      componentsId,
+      componentIds,
       archetypeForInsertIndex: this.archetypes.length,
       newPartitionIndex: 0,
     });
@@ -136,7 +181,7 @@ export class ArchetypeStorage {
     entities,
     entityLength,
     archetype,
-    componentsId,
+    componentIds,
     archetypeForInsertIndex,
     newPartitionIndex,
   }: EntityInputs & {
@@ -150,7 +195,7 @@ export class ArchetypeStorage {
     ) as Archetype['partitions'][number];
     partition[this.partitionConstants.lastNotDeletedEntityOffset] = 0;
     partition[this.partitionConstants.componentsIndexesOffset] =
-      componentsId.reduce<ComponentsIndexesOffset>((acc, id, index) => {
+      componentIds.reduce<ComponentsIndexesOffset>((acc, id, index) => {
         acc[id] = index + this.partitionConstants.entityStartOffset;
 
         return acc;
@@ -162,6 +207,8 @@ export class ArchetypeStorage {
       lastNotDeletedEntityOffset:
         this.partitionConstants.entityStartOffset + entities.length * entityLength - entityLength,
       partition,
+      archetypeForInsertIndex,
+      partitionForInsertIndex: newPartitionIndex,
     });
 
     entities.reduce((acc, entity) => {
@@ -184,21 +231,29 @@ export class ArchetypeStorage {
     );
 
     archetype.partitions.push(partition);
-    archetype.componentsPartitionIndex.insert(componentsId, newPartitionIndex);
-    this.archetypesPrefixTree.insert(componentsId, archetypeForInsertIndex);
+    archetype.componentsPartitionIndex.insert(componentIds, newPartitionIndex);
+    this.archetypesPrefixTree.insert(componentIds, archetypeForInsertIndex);
   }
 
   private fillPartition({
     entities,
     partition,
     lastNotDeletedEntityOffset,
+    partitionForInsertIndex,
+    archetypeForInsertIndex,
   }: {
     entities: EntityArray[];
     partition: Archetype['partitions'][number];
     lastNotDeletedEntityOffset: number;
+    partitionForInsertIndex: number;
+    archetypeForInsertIndex: number;
   }) {
     for (let i = 0; i < entities.length; i++) {
       partition.push(...entities[i]);
+      this.entityIdToIndexes.set(entities[i][0], {
+        archetypeIndex: archetypeForInsertIndex,
+        partitionIndex: partitionForInsertIndex,
+      });
     }
 
     partition[this.partitionConstants.lastNotDeletedEntityOffset] = partition[
@@ -209,13 +264,11 @@ export class ArchetypeStorage {
   applyTickToEntitiesByComponentIds({
     componentIds,
     system,
-    timeElapsed,
-    now,
+    systemStep,
   }: {
     componentIds: ComponentIds;
     system: System;
-    timeElapsed: number;
-    now: number;
+    systemStep: number;
   }): void {
     const archetypeIndexes = this.archetypesPrefixTree.search(componentIds);
 
@@ -244,9 +297,8 @@ export class ArchetypeStorage {
           system.updateTick({
             index: i,
             idToComponentOffset,
-            timeElapsed,
+            systemStep,
             partition,
-            now,
           });
         }
       }

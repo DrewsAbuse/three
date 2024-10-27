@@ -1,84 +1,49 @@
-import {AxesHelper, Mesh, Object3D, Quaternion, Vector3} from 'three';
+import {Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import dat from 'dat.gui';
-import type {EntityInput} from '../types.ts';
-import type {ComponentIdToTypes} from '../components';
+import type {EntityInput} from '../types';
+import type {ComponentIdToTypes, MovementComponentData} from '../components';
 import {movementComponentDataIndexes} from '../components';
-import {componentsId} from '../components';
+import {componentIds} from '../components';
 import {Component, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
+import {player as playerJSON} from '../env.ts';
+import {effectsRegistrar, signalsRegistrar} from '../../GUI/signals.ts';
+import {invokeCallbacksOnEntityComponent} from './index.ts';
 
-//TODO: Move GUI form player
-//TODO: Reduce array and objects creation while creating entities
-
-const gui = new dat.GUI();
 const gltfLoader = new GLTFLoader();
 
+//TODO: Implement proper import and loading of models
 export const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
   gltf.scene.scale.set(12, 12, 12);
   gltf.scene.rotateY(Math.PI);
 
   return gltf.scene;
 });
-export type PlayerEntityCreation = ReturnType<typeof createPlayer>;
+
+export const {MOVE_ACCELERATION, MOVE_DECELERATION, ROTATION_ACCELERATION, ROTATION_DECELERATION} =
+  playerJSON.MOVE;
 
 export const createPlayer = (): EntityInput => {
-  const axisHelperMESH = new AxesHelper(50);
-  axisHelperMESH.setColors(0xff0000, 0x00ff00, 0x0000ff);
-
   const mesh = new Mesh();
   mesh.add(model);
 
-  mesh.add(axisHelperMESH);
-
   const meshComponent = new Component({
     data: mesh,
-    id: componentsId.mesh,
+    id: componentIds.mesh,
   });
 
-  const moveData: ComponentIdToTypes[componentsId.movement] = [
+  const moveData: ComponentIdToTypes[componentIds.movement] = [
     new Vector3(),
-    new Vector3(0, 0, 16),
-    new Vector3(0, 0, -3),
+    new Vector3(MOVE_ACCELERATION.x, MOVE_ACCELERATION.y, MOVE_ACCELERATION.z),
+    new Vector3(MOVE_DECELERATION.x, MOVE_DECELERATION.y, MOVE_DECELERATION.z),
     new Vector3(),
-    new Vector3(2, 1, 4),
-    new Vector3(-4, -3, -12),
+    new Vector3(ROTATION_ACCELERATION.x, ROTATION_ACCELERATION.y, ROTATION_ACCELERATION.z),
+    new Vector3(ROTATION_DECELERATION.x, ROTATION_DECELERATION.y, ROTATION_DECELERATION.z),
   ];
-
-  //TODO: Add separate GUI SYSTEM
-  const playerMoveFolder = gui.addFolder('Player Movement');
-  const accelerationFolder = playerMoveFolder.addFolder('Acceleration');
-  const decelerationFolder = playerMoveFolder.addFolder('Deceleration');
-
-  accelerationFolder
-    .add(moveData[movementComponentDataIndexes.accelerationMove], 'z', 0, 20)
-    .name('forward');
-  accelerationFolder
-    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'x', 0, 10)
-    .name('pitch');
-  accelerationFolder
-    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'y', 0, 10)
-    .name('yaw');
-  accelerationFolder
-    .add(moveData[movementComponentDataIndexes.accelerationRotation], 'z', 0, 10)
-    .name('roll');
-
-  decelerationFolder
-    .add(moveData[movementComponentDataIndexes.decelerationMove], 'z', -35, 0)
-    .name('forward');
-  decelerationFolder
-    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'x', -20, 0)
-    .name('pitch');
-  decelerationFolder
-    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'y', -15, 0)
-    .name('yaw');
-  decelerationFolder
-    .add(moveData[movementComponentDataIndexes.decelerationRotation], 'z', -40, 0)
-    .name('roll');
 
   const movementComponent = new Component({
     data: moveData,
-    id: componentsId.movement,
+    id: componentIds.movement,
   });
   const keysComponent = keysInputComponent;
 
@@ -91,10 +56,29 @@ export const createPlayer = (): EntityInput => {
       lerpCoefficient: 10,
       slerpCoefficient: 5,
     },
-    id: componentsId.camera,
+    id: componentIds.camera,
   });
 
-  const components = [keysComponent, meshComponent, movementComponent, cameraComponent];
+  const UIWriteComponent = new Component({
+    id: componentIds.uiWrite,
+    data: {
+      signalIds: [],
+      signalIdToUpdateId: {},
+    },
+  });
+  const UIReadComponent = new Component({
+    id: componentIds.uiRead,
+    data: true,
+  });
+
+  const components = [
+    keysComponent,
+    meshComponent,
+    movementComponent,
+    cameraComponent,
+    UIWriteComponent,
+    UIReadComponent,
+  ];
   const sortedComponents = components.sort((a, b) => a.id - b.id);
 
   return {
@@ -102,3 +86,20 @@ export const createPlayer = (): EntityInput => {
     entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
   };
 };
+
+export const forwardAcceleration = signalsRegistrar.createSignal<number>(MOVE_ACCELERATION.z);
+export const forwardDeceleration = signalsRegistrar.createSignal<number>(MOVE_DECELERATION.z);
+
+export const player = createPlayer();
+
+invokeCallbacksOnEntityComponent(player, [
+  {
+    componentId: componentIds.movement,
+    callback: (movementData: MovementComponentData) => {
+      effectsRegistrar.subscribeEffectToSignals(() => {
+        movementData[movementComponentDataIndexes.accelerationMove].z = forwardAcceleration.value;
+        movementData[movementComponentDataIndexes.decelerationMove].z = forwardDeceleration.value;
+      });
+    },
+  },
+]);

@@ -1,9 +1,9 @@
-import type {ComponentData} from './components';
+import type {ComponentsData} from '../components';
 
 type IsEntityDeleted = 0 | 1;
 type IsEntityDirty = 0 | 1;
 type EntityId = number;
-export type EntityArray = [EntityId, IsEntityDeleted, IsEntityDirty, ...ComponentData[]];
+export type EntityArray = [EntityId, IsEntityDeleted, IsEntityDirty, ...ComponentsData[]];
 export type ComponentsIndexesOffset = Record<number, number>;
 type CurrentFilledIndex = number; //Must be used for swapping elements instead of delete and concatenation
 type EntityLength = number;
@@ -14,13 +14,12 @@ export type TwoDimensionalArray = [
   ...EntityArray,
 ][];
 export type ArchetypePartition = TwoDimensionalArray[number];
-export type EntityInputs = {componentsId: ComponentIds; entities: EntityArray[]};
+export type EntityInputs = {componentIds: ComponentIds; entities: EntityArray[]};
 export type EntityInput = {entityArray: EntityArray; componentsId: Uint16Array};
 export type ComponentIds = Readonly<Uint16Array>;
 
 export type TickParams = {
-  timeElapsed: number;
-  now: number;
+  systemStep: number;
   partition: ArchetypePartition;
   idToComponentOffset: ComponentsIndexesOffset;
   index: number;

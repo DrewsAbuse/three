@@ -1,14 +1,17 @@
-import {AmbientLight, Group, InstancedMesh, Mesh, Object3D, PerspectiveCamera} from 'three';
+import {AmbientLight, Group, InstancedMesh, Mesh, Object3D} from 'three';
 import Stats from 'stats.js';
 import {Scene} from 'three';
 import type {WebGLRenderer} from 'three';
 import type {Component} from '../components';
-import type {EntityArray} from '../types.ts';
-import {WebGPURenderer} from '../helpers';
-import {componentsId} from '../components';
+import type {EntityArray} from '../types';
+import type {WebGPURenderer} from '../helpers';
+import type {ArchetypeStorage} from './storage.ts';
+import {webGPURenderer} from '../helpers';
+import {componentIds} from '../components';
 import {createSkybox} from '../helpers';
 import {CameraSystem} from '../systems';
 import {SpatialHashGrid} from '../helpers/grid.ts';
+import {FIXED_TIME_STEP, SYSTEM_STEP} from '../env.ts';
 import {World} from './base.ts';
 
 export class ClientWorld extends World {
@@ -25,21 +28,21 @@ export class ClientWorld extends World {
     deleteMesh: (mesh: Component['data']) => void;
   };
 
+  systemStep = SYSTEM_STEP;
+  fixedTimeStep = FIXED_TIME_STEP;
+
   cameraSystem = new CameraSystem();
-  debugCamera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
 
   grid = new SpatialHashGrid();
 
-  constructor() {
-    super();
+  constructor(storage: ArchetypeStorage) {
+    super(storage);
 
-    this.renderer = new WebGPURenderer();
+    this.renderer = webGPURenderer;
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(this.renderer.domElement);
+    document.getElementById('game')?.appendChild(this.renderer.domElement);
 
-    this.debugCamera.position.set(80, 80, 70);
-    this.debugCamera.lookAt(0, 0, 0);
     this.scene.add(this.cameraSystem.camera);
 
     this.scene.background = createSkybox();
@@ -65,7 +68,6 @@ export class ClientWorld extends World {
     this.scene.add(light);
   }
 
-  fixedTimeStep = 16.67;
   requestAnimationFrameFixedTimeStep = (
     previousRAFFixedUpdate: number = 0,
     accumulator = 0,
@@ -79,12 +81,15 @@ export class ClientWorld extends World {
 
       // Run fixed time updates
       while (accumulator >= this.fixedTimeStep) {
-        this.runSystems(this.fixedTimeStep);
+        this.runSystems();
         accumulator -= this.fixedTimeStep;
+        if (!(accumulator >= this.fixedTimeStep)) {
+          accumulator = 0;
+        }
       }
-
       // Render the frame
       this.renderer.render(this.scene, this.cameraSystem.camera);
+
       this.stats.end();
 
       // Recursively call requestAnimationFrame
@@ -94,10 +99,10 @@ export class ClientWorld extends World {
   createEntityAndAddToScene(params: {entityArray: EntityArray; componentsId: Uint16Array}) {
     this.storage.insertEntities({
       entities: [params.entityArray],
-      componentsId: params.componentsId,
+      componentIds: params.componentsId,
     });
     const meshComponentIndex = params.componentsId.findIndex(
-      bitMask => bitMask === componentsId.mesh || bitMask === componentsId.instancedMesh
+      bitMask => bitMask === componentIds.mesh || bitMask === componentIds.instancedMesh
     );
 
     if (meshComponentIndex === undefined) {
@@ -106,25 +111,20 @@ export class ClientWorld extends World {
     this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
   }
 
-  runSystems(prevTimeElapsed: number) {
+  runSystems() {
     {
-      const timeElapsed = Math.min(1.0 / 30.0, prevTimeElapsed * 0.001);
-      const now = new Date().getTime();
-
       if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
         this.renderSystemUpdateId = this.sceneEntities.updateId[0];
         this.renderSceneSystem();
       }
 
       this.storage.applyTickToEntitiesByComponentIds({
-        now,
-        timeElapsed,
+        systemStep: this.systemStep,
         componentIds: this.movementsSystemRunner.requiredComponents,
         system: this.movementsSystemRunner,
       });
       this.storage.applyTickToEntitiesByComponentIds({
-        now,
-        timeElapsed,
+        systemStep: this.systemStep,
         componentIds: this.cameraSystem.requiredComponents,
         system: this.cameraSystem,
       });

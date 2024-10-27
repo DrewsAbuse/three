@@ -1,13 +1,13 @@
 import {Matrix4, Quaternion, Vector3} from 'three';
 import type {InstancedMesh} from 'three';
-import type {TickParams} from '../types.ts';
-import {componentsId} from '../components';
+import type {TickParams} from '../types';
+import {componentIds} from '../components';
 import {System} from './base.ts';
 
 export class CubeSnackSystem extends System {
   constructor() {
     super({
-      requiredComponents: new Uint16Array([componentsId.instancedMesh]),
+      requiredComponents: new Uint16Array([componentIds.instancedMesh]),
     });
   }
 
@@ -21,7 +21,7 @@ export class CubeSnackSystem extends System {
   private dummyTwoPosition = new Vector3();
   private dummyTwoScale = new Vector3(0, 0, 0);
 
-  updateTick({timeElapsed, partition, index, idToComponentOffset}: TickParams) {
+  updateTick({systemStep, partition, index, idToComponentOffset}: TickParams) {
     const multiplier = 10;
 
     this.dummyMatrix4.multiplyScalar(0);
@@ -35,7 +35,7 @@ export class CubeSnackSystem extends System {
     this.dummyTwoScale.set(0, 0, 0);
 
     const instancedMesh = partition[
-      index + idToComponentOffset[componentsId.instancedMesh]
+      index + idToComponentOffset[componentIds.instancedMesh]
     ] as InstancedMesh;
 
     for (let j = 0; j < instancedMesh.count - 1; j++) {
@@ -52,9 +52,9 @@ export class CubeSnackSystem extends System {
       instancedMesh.setMatrixAt(
         j,
         this.dummyMatrix4.compose(
-          this.dummyPosition.lerp(this.dummyTwoPosition, timeElapsed * multiplier),
-          this.dummyQuaternion.slerp(this.dummyTwoQuaternion, timeElapsed * multiplier),
-          this.dummyScale.lerp(this.dummyTwoScale, timeElapsed * multiplier)
+          this.dummyPosition.lerp(this.dummyTwoPosition, systemStep * multiplier),
+          this.dummyQuaternion.slerp(this.dummyTwoQuaternion, systemStep * multiplier),
+          this.dummyScale.lerp(this.dummyTwoScale, systemStep * multiplier)
         )
       );
     }
@@ -75,10 +75,10 @@ export class CubeSnackSystem extends System {
         this.dummyPosition.lerpVectors(
           this.dummyPosition,
           this.dummyTwoPosition,
-          timeElapsed * multiplier
+          systemStep * multiplier
         ),
-        this.dummyQuaternion.slerp(this.dummyTwoQuaternion, timeElapsed * multiplier),
-        this.dummyScale.lerpVectors(this.dummyScale, this.dummyTwoScale, timeElapsed * multiplier)
+        this.dummyQuaternion.slerp(this.dummyTwoQuaternion, systemStep * multiplier),
+        this.dummyScale.lerpVectors(this.dummyScale, this.dummyTwoScale, systemStep * multiplier)
       )
     );
 

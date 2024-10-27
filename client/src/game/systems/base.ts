@@ -1,5 +1,5 @@
 import type {RequiredComponents} from './index.ts';
-import type {TickParams} from '../types.ts';
+import type {TickParams} from '../types';
 
 export abstract class System {
   requiredComponents: RequiredComponents;
@@ -8,10 +8,7 @@ export abstract class System {
     this.requiredComponents = requiredComponents;
   }
 
-  updateTick({timeElapsed}: TickParams) {
-    console.log(timeElapsed);
-    throw new Error('update not implemented');
-  }
+  abstract updateTick({systemStep}: TickParams): void;
 }
 
 export abstract class SubSystem {

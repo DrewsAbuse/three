@@ -1,13 +1,9 @@
 import type {Object3D, Vector3} from 'three';
-
-// Define constants
-export const GRID_HELPER_SIZE = 5000000;
-export const GRID_HELPER_DIVISIONS = 500000;
-export const CELL_SIZE = GRID_HELPER_SIZE / GRID_HELPER_DIVISIONS;
+import {GRID_DIVISIONS, GRID_SIZE} from '../env.ts';
 
 export class SpatialHashGrid {
-  gridSize: number = GRID_HELPER_SIZE;
-  cellSize: number = CELL_SIZE;
+  gridSize: number = GRID_SIZE;
+  cellSize: number = GRID_SIZE / GRID_DIVISIONS;
   cellsDebug: Map<number, Object3D> = new Map();
   cells: Map<number, Set<Object3D>> = new Map();
 

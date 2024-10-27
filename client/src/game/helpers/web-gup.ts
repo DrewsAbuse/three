@@ -1,14 +1,11 @@
 import {WebGLRenderer} from 'three';
 
-//TODO: Fix TS
 export class WebGPURenderer extends WebGLRenderer {
   context:
     | (WebGLRenderingContext & {
-        //@ts-ignore
         gpu?: GPUDevice;
       })
     | (WebGL2RenderingContext & {
-        //@ts-ignore
         gpu?: GPUDevice;
       });
 
@@ -19,7 +16,6 @@ export class WebGPURenderer extends WebGLRenderer {
   }
 
   async init() {
-    //@ts-ignore
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter?.requestDevice();
 
@@ -30,3 +26,7 @@ export class WebGPURenderer extends WebGLRenderer {
     this.context.gpu = device;
   }
 }
+
+const webGPURenderer = new WebGPURenderer();
+await webGPURenderer.init();
+export {webGPURenderer};
