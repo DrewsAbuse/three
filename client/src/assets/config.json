@@ -1,0 +1,11 @@
+{
+  "client": {
+    "SYSTEM_STEP": 0.03,
+    "FIXED_TIME_STEP": 16.67
+  },
+  "grid": {
+    "GRID_SIZE": 50,
+    "GRID_DIVISIONS": 10
+  },
+  "entities": ["player"]
+}
