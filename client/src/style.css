@@ -1,61 +1,425 @@
-body {
-    padding: 0;
+/* General Reset and Box Sizing */
+* {
     margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: rgb(48, 46, 46);
-    color: white;
-    padding-top: 25vh;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Monaco', 'Verdana', sans-serif;
 }
 
-.container {
-    width: 400px;
-    display: flex;
-    flex-direction: column;
-    margin: auto;
-    align-items: center;
-    background-color: rgb(22, 21, 21);
-    border-radius: 15px;
-    padding: 25px 10px;
-    box-shadow: 0 0 15px rgb(80, 79, 79);
+/* Body Styles */
+body {
+    background-color: #101010; /* Darker background for Cyberpunk feel */
+    color: #0affff; /* Neon cyan text */
+    font-size: 14px;
+    overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-    width: 90%;
+/* Heading Styles */
+h1, h2, h3, h4 {
+    color: #ff0080; /* Bright neon pink for headings */
+    text-transform: uppercase;
+    letter-spacing: 2px; /* Slightly wider for futuristic effect */
+    text-shadow: 0px 0px 8px #ff0080, 0px 0px 10px #ff00ff; /* Neon glow effect */
 }
 
-input {
-    height: 40px;
-    border-radius: 10px;
-    border: none;
-    outline: none;
-    margin: 5px;
-    text-align: center;
-    font-size: 18px;
-    color: white;
-    background-color: rgb(48, 46, 46);
+/* Link Styles */
+a {
+    text-decoration: none;
+    color: #0affff; /* Neon cyan for links */
+    transition: color 0.3s ease-in;
 }
 
-.btns {
-    margin: 15px auto;
+a:hover {
+    color: #ff0080; /* Color shifts to pink on hover */
 }
 
-button {
-    background-color: rgb(0, 0, 0);
-    color: white;
-    border: none;
-    padding: 8px 30px;
-    border-radius: 10px;
-    font-size: 18px;
+/* Button Styles */
+.btn {
+    background-color: #262626; /* Dark background */
+    color: #0affff; /* Neon text */
+    padding: 10px 20px;
+    border: 2px solid #ff0080; /* Neon pink border */
+    font-size: 12px;
+    text-transform: uppercase;
+    display: inline-block;
     cursor: pointer;
-    margin: 5px 25px;
+    box-shadow: 3px 3px 0px #ff0080, inset 0px 0px 8px #0affff; /* Neon box shadows */
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin: 5px;
 }
 
-h2 {
-    text-align: center;
+.btn:hover {
+    box-shadow: 3px 3px 15px #ff0080, inset 0px 0px 12px #ff00ff;
+    transform: scale(1.05); /* Slight scaling effect */
 }
 
-button:hover {
-    background-color: tomato;
+.btn:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+
+/* Input Styles */
+input[type="text"], input[type="password"], textarea {
+    background-color: #1a1a1a; /* Darker input field */
+    border: 2px solid #ff00ff;
+    padding: 8px;
+    width: 100%;
+    font-size: 12px;
+    color: #0affff;
+    box-shadow: inset 2px 2px 8px #ff0080; /* Neon inset shadow */
+    margin-bottom: 10px;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #0affff; /* Focus effect with cyan glow */
+    box-shadow: inset 0px 0px 12px #0affff;
+}
+
+/* Window Styles */
+.window {
+    background-color: #1c1c1c;
+    border: 2px solid #ff0080;
+    width: 300px;
+    margin: 20px;
+    box-shadow: 5px 5px 20px #0affff; /* Outer glow shadow */
+    position: relative;
+    overflow: hidden;
+}
+
+.window-header {
+    background-color: #ff0080;
+    color: #fff;
+    padding: 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    cursor: move;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0px 0px 8px #ff0080, inset 0px 0px 8px #ff00ff;
+}
+
+.window-header:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 0, 128, 0.2);
+    pointer-events: none;
+    z-index: 1;
+    animation: glitch 2s infinite;
+}
+
+@keyframes glitch {
+    0% { clip: rect(20px, 9999px, 75px, 0); }
+    20% { clip: rect(85px, 9999px, 10px, 0); }
+    40% { clip: rect(15px, 9999px, 60px, 0); }
+    60% { clip: rect(40px, 9999px, 90px, 0); }
+    80% { clip: rect(10px, 9999px, 85px, 0); }
+    100% { clip: rect(30px, 9999px, 40px, 0); }
+}
+
+.window-body {
+    padding: 15px;
+    font-size: 12px;
+    color: #0affff;
+    text-shadow: 0px 0px 5px #0affff;
+    display: grid;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+}
+
+.window-footer {
+    background-color: #1c1c1c;
+    padding: 10px;
+    text-align: right;
+    color: #ff0080;
+}
+
+/* Menu Bar Styles */
+.menu-bar {
+    display: flex;
+    background-color: #262626;
+    color: #0affff;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-bottom: 2px solid #ff0080;
+}
+
+.menu-bar-item {
+    margin-right: 15px;
+    cursor: pointer;
+    position: relative;
+}
+
+.menu-bar-item:hover {
+    color: #ff0080;
+}
+
+.menu-bar-item:hover:before {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #ff0080; /* Neon hover underline */
+}
+
+/* Navigation Menu Styles */
+.nav-menu {
+    margin: 5%;
+    background-color: #1a1a1a;
+    border: 2px solid #ff00ff;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 2px 20px #0affff; /* Glow effect on nav menu */
+    overflow: hidden; /* Prevents overflowing */
+    bottom: 0;
+}
+
+.nav-item {
+    margin: 5px 0;
+    padding: 5px 10px;
+    border: 1px solid #ff0080;
+    cursor: pointer;
+    box-shadow: 3px 3px 8px #0affff;
+    transition: box-shadow 0.2s, transform 0.2s;
+    transform-origin: center; /* Ensures scaling is centered */
+}
+
+.nav-item:hover {
+    background-color: #ff0080;
+    color: #fff;
+    box-shadow: 5px 5px 15px #ff00ff;
+    transform: scale(1.005); /* Slight scaling effect */
+    z-index: 1; /* Ensure hover item is above others */
+}
+
+/* Slider Container */
+.slider-container {
+    margin: 20px 0;
+    display: grid;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+}
+
+.label {
+    color: #0affff;
+    font-family: 'Monaco', 'Verdana', sans-serif;
+    font-size: 14px;
+    margin-right: 20px;
+    width: 100%;
+    display: grid;
+}
+
+/* Slider Styles */
+input[type="range"].slider {
+    display: flex;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 10px;
+    background: #1a1a1a;
+    border: 2px solid #ff00ff;
+    box-shadow: 0px 0px 10px #ff00ff, inset 0px 0px 5px #0affff; /* Neon glow effect */
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+/* Thumb styles */
+input[type="range"].slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff0080;
+    box-shadow: 0px 0px 8px #ff00ff, inset 0px 0px 5px #0affff; /* Glowing neon effect */
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s;
+}
+
+input[type="range"].slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff0080;
+    box-shadow: 0px 0px 8px #ff00ff, inset 0px 0px 5px #0affff;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s;
+}
+
+/* Slider thumb hover effect */
+input[type="range"].slider::-webkit-slider-thumb:hover {
+    background: #0affff; /* Changes color on hover */
+    transform: scale(1.2); /* Slight grow effect */
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+    background: #0affff; /* Changes color on hover */
+    transform: scale(1.2);
+}
+
+
+.canvas {
+    display: block; /* Remove default margin for canvas */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0; /* WebGL canvas stays in the background */
+}
+
+/* HUD Styling bottom from left to right */
+/* HTML elements should be above WebGL canvas */
+
+/* Grid container covering the whole screen */
+.hud-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* 3 columns: Left, Mid, Right */
+    grid-template-rows: 1fr auto 1fr;  /* 3 rows: Top, Middle (auto-sized), Bottom */
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1; /* HTML elements should be above WebGL canvas */
+    justify-content: space-between;
+    padding: 10px;
+    box-sizing: border-box;
+    color: #0affff; /* Neon cyan text color */
+    font-family: 'Monaco', 'Verdana', sans-serif; /* Consistent font family */
+}
+
+/* HUD Items */
+.hud-item {
+    padding: 20px;
+    color: #0affff;
+    font-size: 16px;
+    text-shadow: 0 0 5px #ff0080;
+}
+
+/* Specific Positions for the corners */
+.l-top {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start; /* Align left */
+    align-self: start;   /* Align top */
+}
+
+.r-top {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;   /* Align right */
+    align-self: start;   /* Align top */
+}
+
+.l-bottom {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start; /* Align left */
+    align-self: end;     /* Align bottom */
+}
+
+.r-bottom {
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: end;   /* Align right */
+    align-self: end;     /* Align bottom */
+}
+
+/* Mid-top position (centered at the top) */
+.m-top {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center; /* Center horizontally */
+    align-self: start;    /* Align top */
+}
+
+/* Mid-bottom position (centered at the bottom) */
+.m-bottom {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: center; /* Center horizontally */
+    align-self: end;      /* Align bottom */
+}
+
+/* Progress Bar Container */
+.progress-container {
+    width: 100%;
+    background-color: #1a1a1a; /* Dark background for the container */
+    border: 2px solid #ff0080; /* Neon pink border */
+    border-radius: 15px;
+    padding: 5px;
+    box-shadow: 0px 0px 10px #ff00ff, inset 0px 0px 5px #0affff; /* Neon glow */
+    margin: 20px 0;
+}
+
+/* Progress Bar Fill */
+.progress-bar {
+    width: 0%; /* This will be dynamically updated */
+    height: 20px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ff0080 0%, #0affff 100%); /* Neon gradient */
+    box-shadow: 0px 0px 12px #ff00ff, inset 0px 0px 8px #0affff; /* Glowing effect */
+    transition: width 0.5s ease-in-out; /* Smooth transition when the bar fills */
+}
+
+.speedometer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.speedometer {
+    position: relative;
+    width: 200px;
+    height: 100px;
+    background: linear-gradient(90deg, #ff0080, #0affff); /* Neon gradient */
+    border: 2px solid #ff00ff;
+    border-radius: 100px 100px 0 0;
+    box-shadow: 0px 0px 20px #0affff, inset 0px 0px 10px #ff0080; /* Glowing effect */
+    overflow: hidden;
+}
+
+.speedometer-needle {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 4px;
+    height: 80px;
+    background-color: #ff0080;
+    box-shadow: 0px 0px 8px #ff00ff, inset 0px 0px 5px #0affff; /* Neon glow */
+    transform-origin: bottom center;
+    transform: rotate(0deg);
+    transition: transform 0.3s ease-out;
+}
+
+.speedometer-center {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background-color: #ff0080;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0px 0px 10px #ff00ff, inset 0px 0px 5px #0affff; /* Neon glow */
+}
+
+.speed-value {
+    margin-top: 15px;
+    color: #0affff;
+    font-size: 24px;
+    font-family: 'Monaco', 'Verdana', sans-serif;
+    text-shadow: 0px 0px 5px #ff0080;
 }

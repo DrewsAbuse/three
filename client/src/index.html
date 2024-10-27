@@ -1,10 +1,25 @@
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>space lancer</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
+
 <body style="margin: 0; height: 100%; overflow: hidden">
-<script type="module" src="game/game.ts"></script>
+
+<div id="game">
+    <div id="hud-grid" class="hud-grid">
+        <div id="hud-left-top" class="hud-item l-top">Score: 0</div>
+        <div id="hud-middle-top" class="hud-item m-top">Space Lancer</div>
+        <div id="hud-right-top" class="hud-item r-top">Level: 1</div>
+        <div id="hud-left-bottom" class="hud-item l-bottom"></div>
+        <div id="hud-middle-bottom" class="hud-item m-bottom">Press Space to Start</div>
+        <div id="hud-right-bottom" class="hud-item r-bottom"></div>
+    </div>
+</div>
+<script type="module" src="game/game.ts">
+</script>
 </body>
 </html>
