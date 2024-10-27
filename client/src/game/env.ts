@@ -6,9 +6,10 @@ export const {client, grid, entities} = config;
 export const {FIXED_TIME_STEP, SYSTEM_STEP} = client;
 export const {GRID_SIZE, GRID_DIVISIONS} = grid;
 
+//TODO: FIX ANY
 export const {
-  player,
-}: Record<string, Record<string, unknown>> = await (() =>
+  player, // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}: Record<string, Record<string, any>> = await (() =>
   entities.reduce(async (accPromise, entity) => {
     const acc = await accPromise;
 
@@ -24,8 +25,8 @@ export const {
   }, Promise.resolve({})))();
 
 export const {
-  player: playerDefaults,
-}: Record<string, Record<string, unknown>> = await (() =>
+  player: playerDefaults, // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}: Record<string, Record<string, any>> = await (() =>
   entities.reduce(async (accPromise, entity) => {
     const acc = await accPromise;
 
