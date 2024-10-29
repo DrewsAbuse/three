@@ -22,6 +22,8 @@ export type TickParams = {
   systemStep: number;
   partition: ArchetypePartition;
   idToComponentOffset: ComponentsIndexesOffset;
-  index: number;
+  entityStartOffset: number;
+  lastLiveEntityIndex: number;
+  entityLength: number;
 };
 export type ExtractRecordValue<T> = T extends infer U ? U[keyof U] : never;

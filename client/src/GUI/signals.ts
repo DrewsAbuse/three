@@ -6,8 +6,28 @@ export const signalsRegistrar: {
   createSignal<T>(initialValue: T): Signal<T>;
   createComputedSignal<T>(computeFn: () => T): ComputedSignal<T>;
   getSignalById<T>(id: string): Signal<T>;
+  batchContainer: Signal<unknown>[];
+  batchGetSignalsByIds<T>(ids: string[]): Readonly<Signal<T>[]>;
 } = {
   mapSignalIdToSignal: new Map(),
+  batchContainer: [],
+  batchGetSignalsByIds<T>(ids: string[]): Readonly<Signal<T>[]> {
+    this.batchContainer.length = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+
+      const signal = this.mapSignalIdToSignal.get(id);
+
+      if (!signal) {
+        throw new Error(`Signal with id ${id} not found`);
+      }
+
+      this.batchContainer.push(signal);
+    }
+
+    return this.batchContainer as Readonly<Signal<T>[]>;
+  },
   getSignalById<T>(id: string): Signal<T> {
     const signal = this.mapSignalIdToSignal.get(id);
 
@@ -34,7 +54,7 @@ export const signalsRegistrar: {
 export class Signal<T> {
   protected _value: T;
   private consumers: Set<() => void> = new Set();
-  private setterVersion = 0;
+  setterVersion = 0;
   private processingVersion = 0;
   private lastProcessedVersion = 0;
   id: string = `signal-${Math.random().toString(36).substring(2, 5)}`;

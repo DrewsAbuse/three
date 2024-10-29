@@ -21,28 +21,55 @@ export class CubeSnackSystem extends System {
   private dummyTwoPosition = new Vector3();
   private dummyTwoScale = new Vector3(0, 0, 0);
 
-  updateTick({systemStep, partition, index, idToComponentOffset}: TickParams) {
+  updateTick({
+    systemStep,
+    partition,
+    idToComponentOffset,
+    entityStartOffset,
+    lastLiveEntityIndex,
+    entityLength,
+  }: TickParams) {
     const multiplier = 10;
+    const instancedMeshIndex = idToComponentOffset[componentIds.instancedMesh];
 
-    this.dummyMatrix4.multiplyScalar(0);
-    this.dummyQuaternion.set(0, 0, 0, 1);
-    this.dummyPosition.set(0, 0, 0);
-    this.dummyScale.set(0, 0, 0);
+    for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
+      this.dummyMatrix4.multiplyScalar(0);
+      this.dummyQuaternion.set(0, 0, 0, 1);
+      this.dummyPosition.set(0, 0, 0);
+      this.dummyScale.set(0, 0, 0);
 
-    this.dummyTwoMatrix4.multiplyScalar(0);
-    this.dummyTwoQuaternion.set(0, 0, 0, 1);
-    this.dummyTwoPosition.set(0, 0, 0);
-    this.dummyTwoScale.set(0, 0, 0);
+      this.dummyTwoMatrix4.multiplyScalar(0);
+      this.dummyTwoQuaternion.set(0, 0, 0, 1);
+      this.dummyTwoPosition.set(0, 0, 0);
+      this.dummyTwoScale.set(0, 0, 0);
 
-    const instancedMesh = partition[
-      index + idToComponentOffset[componentIds.instancedMesh]
-    ] as InstancedMesh;
+      const instancedMesh = partition[index + instancedMeshIndex] as InstancedMesh;
 
-    for (let j = 0; j < instancedMesh.count - 1; j++) {
-      instancedMesh.getMatrixAt(j, this.dummyMatrix4);
+      for (let j = 0; j < instancedMesh.count - 1; j++) {
+        instancedMesh.getMatrixAt(j, this.dummyMatrix4);
+        this.dummyMatrix4.decompose(this.dummyPosition, this.dummyQuaternion, this.dummyScale);
+
+        instancedMesh.getMatrixAt(j + 1, this.dummyTwoMatrix4);
+        this.dummyTwoMatrix4.decompose(
+          this.dummyTwoPosition,
+          this.dummyTwoQuaternion,
+          this.dummyTwoScale
+        );
+
+        instancedMesh.setMatrixAt(
+          j,
+          this.dummyMatrix4.compose(
+            this.dummyPosition.lerp(this.dummyTwoPosition, systemStep * multiplier),
+            this.dummyQuaternion.slerp(this.dummyTwoQuaternion, systemStep * multiplier),
+            this.dummyScale.lerp(this.dummyTwoScale, systemStep * multiplier)
+          )
+        );
+      }
+
+      instancedMesh.getMatrixAt(instancedMesh.count - 1, this.dummyMatrix4);
       this.dummyMatrix4.decompose(this.dummyPosition, this.dummyQuaternion, this.dummyScale);
 
-      instancedMesh.getMatrixAt(j + 1, this.dummyTwoMatrix4);
+      instancedMesh.getMatrixAt(0, this.dummyTwoMatrix4);
       this.dummyTwoMatrix4.decompose(
         this.dummyTwoPosition,
         this.dummyTwoQuaternion,
@@ -50,41 +77,22 @@ export class CubeSnackSystem extends System {
       );
 
       instancedMesh.setMatrixAt(
-        j,
+        instancedMesh.count - 1,
         this.dummyMatrix4.compose(
-          this.dummyPosition.lerp(this.dummyTwoPosition, systemStep * multiplier),
+          this.dummyPosition.lerpVectors(
+            this.dummyPosition,
+            this.dummyTwoPosition,
+            systemStep * multiplier
+          ),
           this.dummyQuaternion.slerp(this.dummyTwoQuaternion, systemStep * multiplier),
-          this.dummyScale.lerp(this.dummyTwoScale, systemStep * multiplier)
+          this.dummyScale.lerpVectors(this.dummyScale, this.dummyTwoScale, systemStep * multiplier)
         )
       );
-    }
 
-    instancedMesh.getMatrixAt(instancedMesh.count - 1, this.dummyMatrix4);
-    this.dummyMatrix4.decompose(this.dummyPosition, this.dummyQuaternion, this.dummyScale);
-
-    instancedMesh.getMatrixAt(0, this.dummyTwoMatrix4);
-    this.dummyTwoMatrix4.decompose(
-      this.dummyTwoPosition,
-      this.dummyTwoQuaternion,
-      this.dummyTwoScale
-    );
-
-    instancedMesh.setMatrixAt(
-      instancedMesh.count - 1,
-      this.dummyMatrix4.compose(
-        this.dummyPosition.lerpVectors(
-          this.dummyPosition,
-          this.dummyTwoPosition,
-          systemStep * multiplier
-        ),
-        this.dummyQuaternion.slerp(this.dummyTwoQuaternion, systemStep * multiplier),
-        this.dummyScale.lerpVectors(this.dummyScale, this.dummyTwoScale, systemStep * multiplier)
-      )
-    );
-
-    instancedMesh.instanceMatrix.needsUpdate = true;
-    if (instancedMesh.instanceColor) {
-      instancedMesh.instanceColor.needsUpdate = true;
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      if (instancedMesh.instanceColor) {
+        instancedMesh.instanceColor.needsUpdate = true;
+      }
     }
   }
 }

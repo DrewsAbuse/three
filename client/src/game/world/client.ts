@@ -2,14 +2,14 @@ import {AmbientLight, Group, InstancedMesh, Mesh, Object3D} from 'three';
 import Stats from 'stats.js';
 import {Scene} from 'three';
 import type {WebGLRenderer} from 'three';
-import type {Component} from '../components';
+import type {Component, ComponentIdToTypes} from '../components';
 import type {EntityArray} from '../types';
 import type {WebGPURenderer} from '../helpers';
 import type {ArchetypeStorage} from './storage.ts';
 import {webGPURenderer} from '../helpers';
 import {componentIds} from '../components';
 import {createSkybox} from '../helpers';
-import {CameraSystem} from '../systems';
+import {CameraSystem, UIWriteSystem} from '../systems';
 import {SpatialHashGrid} from '../helpers/grid.ts';
 import {FIXED_TIME_STEP, SYSTEM_STEP} from '../env.ts';
 import {World} from './base.ts';
@@ -32,6 +32,7 @@ export class ClientWorld extends World {
   fixedTimeStep = FIXED_TIME_STEP;
 
   cameraSystem = new CameraSystem();
+  uiWriteSystem = new UIWriteSystem();
 
   grid = new SpatialHashGrid();
 
@@ -105,39 +106,28 @@ export class ClientWorld extends World {
       bitMask => bitMask === componentIds.mesh || bitMask === componentIds.instancedMesh
     );
 
-    if (meshComponentIndex === undefined) {
-      throw new Error(`meshComponent not found`);
+    if (meshComponentIndex !== -1) {
+      this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
     }
-    this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
-  }
 
-  runSystems() {
-    {
-      if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
-        this.renderSystemUpdateId = this.sceneEntities.updateId[0];
-        this.renderSceneSystem();
+    const uiWriteComponentIndex = params.componentsId.findIndex(
+      bitMask => bitMask === componentIds.uiWrite
+    );
+
+    if (uiWriteComponentIndex !== -1) {
+      console.log('uiWriteComponentIndex', uiWriteComponentIndex);
+
+      const {signalIds, signalIdToSetter} = params.entityArray[
+        uiWriteComponentIndex + 3
+      ] as ComponentIdToTypes[componentIds.uiWrite];
+
+      console.log('signalIds', params.entityArray);
+
+      for (const signalId of signalIds) {
+        const {updateId: signalVersion} = signalIdToSetter[signalId];
+
+        this.uiWriteSystem.signalIdToLastUpdatedVersion.set(signalId, signalVersion);
       }
-
-      this.storage.applyTickToEntitiesByComponentIds({
-        systemStep: this.systemStep,
-        componentIds: this.movementsSystemRunner.requiredComponents,
-        system: this.movementsSystemRunner,
-      });
-      this.storage.applyTickToEntitiesByComponentIds({
-        systemStep: this.systemStep,
-        componentIds: this.cameraSystem.requiredComponents,
-        system: this.cameraSystem,
-      });
-
-      //
-      // this.storage.applyTickToEntitiesByComponentIds({
-      // now,
-      // timeElapsed,
-      // componentIds: this.cubeSnackSystem.requiredComponents,
-      // system: this.cubeSnackSystem,
-      // });
-      //
-      //
     }
   }
 
@@ -169,5 +159,40 @@ export class ClientWorld extends World {
 
     this.sceneEntities.meshToAdd.length = 0;
     this.sceneEntities.meshToDelete.length = 0;
+  }
+
+  runSystems() {
+    {
+      if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
+        this.renderSystemUpdateId = this.sceneEntities.updateId[0];
+        this.renderSceneSystem();
+      }
+
+      this.storage.applyTickToEntitiesByComponentIds({
+        systemStep: this.systemStep,
+        componentIds: this.movementsSystemRunner.requiredComponents,
+        system: this.movementsSystemRunner,
+      });
+      this.storage.applyTickToEntitiesByComponentIds({
+        systemStep: this.systemStep,
+        componentIds: this.cameraSystem.requiredComponents,
+        system: this.cameraSystem,
+      });
+      this.storage.applyTickToEntitiesByComponentIds({
+        systemStep: this.systemStep,
+        componentIds: this.uiWriteSystem.requiredComponents,
+        system: this.uiWriteSystem,
+      });
+
+      //
+      // this.storage.applyTickToEntitiesByComponentIds({
+      // now,
+      // timeElapsed,
+      // componentIds: this.cubeSnackSystem.requiredComponents,
+      // system: this.cubeSnackSystem,
+      // });
+      //
+      //
+    }
   }
 }

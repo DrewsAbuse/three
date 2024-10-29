@@ -35,54 +35,63 @@ export class MovementsWithKeysInputSystemRunner extends System {
     movement: movementComponentDataIndexes,
   } as const;
 
-  updateTick({partition, idToComponentOffset, index, systemStep}: TickParams) {
+  updateTick({
+    partition,
+    idToComponentOffset,
+    entityLength,
+    entityStartOffset,
+    lastLiveEntityIndex,
+    systemStep,
+  }: TickParams) {
     const keysComponentOffset = idToComponentOffset[componentIds.keysInput];
     const meshComponentOffset = idToComponentOffset[componentIds.mesh];
     const movementComponentOffset = idToComponentOffset[componentIds.movement];
 
-    const movementComponentData = partition[
-      index + movementComponentOffset
-    ] as ComponentIdToTypes[componentIds.movement];
+    for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
+      const movementComponentData = partition[
+        index + movementComponentOffset
+      ] as ComponentIdToTypes[componentIds.movement];
 
-    const rotationVelocity =
-      movementComponentData[this.componentsIndexes.movement.velocityRotation];
-    const rotationAcceleration =
-      movementComponentData[this.componentsIndexes.movement.accelerationRotation];
+      const rotationVelocity =
+        movementComponentData[this.componentsIndexes.movement.velocityRotation];
+      const rotationAcceleration =
+        movementComponentData[this.componentsIndexes.movement.accelerationRotation];
 
-    const rotationDeceleration =
-      movementComponentData[this.componentsIndexes.movement.decelerationRotation];
-    const moveDeceleration =
-      movementComponentData[this.componentsIndexes.movement.decelerationMove];
+      const rotationDeceleration =
+        movementComponentData[this.componentsIndexes.movement.decelerationRotation];
+      const moveDeceleration =
+        movementComponentData[this.componentsIndexes.movement.decelerationMove];
 
-    const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
-    const moveAcceleration =
-      movementComponentData[this.componentsIndexes.movement.accelerationMove];
+      const moveVelocity = movementComponentData[this.componentsIndexes.movement.velocityMove];
+      const moveAcceleration =
+        movementComponentData[this.componentsIndexes.movement.accelerationMove];
 
-    const {keyDownToBoolMap} = partition[
-      index + keysComponentOffset
-    ] as ComponentIdToTypes[componentIds.keysInput];
+      const {keyDownToBoolMap} = partition[
+        index + keysComponentOffset
+      ] as ComponentIdToTypes[componentIds.keysInput];
 
-    this.movementInputSystem['air-craft'].update({
-      timeElapsedS: systemStep,
-      props: {
-        keyDownToBoolMap,
-        rotationVelocity,
-        rotationAcceleration,
-        moveVelocity,
-        moveAcceleration,
-      },
-    });
+      this.movementInputSystem['air-craft'].update({
+        timeElapsedS: systemStep,
+        props: {
+          keyDownToBoolMap,
+          rotationVelocity,
+          rotationAcceleration,
+          moveVelocity,
+          moveAcceleration,
+        },
+      });
 
-    this.movementSystem.update({
-      timeElapsedS: systemStep,
-      props: {
-        mesh: partition[index + meshComponentOffset] as ComponentIdToTypes[componentIds.mesh],
-        rotationVelocity,
-        rotationDeceleration,
-        moveVelocity,
-        moveDeceleration,
-      },
-    });
+      this.movementSystem.update({
+        timeElapsedS: systemStep,
+        props: {
+          mesh: partition[index + meshComponentOffset] as ComponentIdToTypes[componentIds.mesh],
+          rotationVelocity,
+          rotationDeceleration,
+          moveVelocity,
+          moveDeceleration,
+        },
+      });
+    }
   }
 }
 

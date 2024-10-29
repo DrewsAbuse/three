@@ -289,18 +289,14 @@ export class ArchetypeStorage {
         const idToComponentOffset = partition[this.partitionConstants.componentsIndexesOffset];
         const entityLength = partition[this.partitionConstants.entityLengthOffset];
 
-        for (
-          let i = this.partitionConstants.entityStartOffset;
-          i <= lastLiveEntityIndex;
-          i += entityLength
-        ) {
-          system.updateTick({
-            index: i,
-            idToComponentOffset,
-            systemStep,
-            partition,
-          });
-        }
+        system.updateTick({
+          entityStartOffset: this.partitionConstants.entityStartOffset,
+          lastLiveEntityIndex,
+          entityLength,
+          idToComponentOffset,
+          systemStep,
+          partition,
+        });
       }
     }
   }

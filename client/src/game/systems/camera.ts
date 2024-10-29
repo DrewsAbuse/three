@@ -30,29 +30,38 @@ export class CameraSystem extends System {
     });
   }
 
-  updateTick({systemStep, partition, index, idToComponentOffset}: TickParams) {
+  updateTick({
+    systemStep,
+    partition,
+    entityLength,
+    entityStartOffset,
+    lastLiveEntityIndex,
+    idToComponentOffset,
+  }: TickParams) {
     const cameraIndex = idToComponentOffset[componentIds.camera];
     const meshIndex = idToComponentOffset[componentIds.mesh];
 
-    const mesh = partition[index + meshIndex] as ComponentIdToTypes[componentIds.mesh];
-    const cameraSettings = partition[
-      index + cameraIndex
-    ] as ComponentIdToTypes[componentIds.camera];
+    for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
+      const mesh = partition[index + meshIndex] as ComponentIdToTypes[componentIds.mesh];
+      const cameraSettings = partition[
+        index + cameraIndex
+      ] as ComponentIdToTypes[componentIds.camera];
 
-    this.camera.position.lerp(
-      cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
-      1.0 - Math.pow(0.5, systemStep * cameraSettings.lerpCoefficient)
-    );
+      this.camera.position.lerp(
+        cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
+        1.0 - Math.pow(0.5, systemStep * cameraSettings.lerpCoefficient)
+      );
 
-    this.camera.quaternion.slerp(
-      mesh.quaternion,
-      1.0 - Math.pow(0.5, systemStep * cameraSettings.slerpCoefficient)
-    );
+      this.camera.quaternion.slerp(
+        mesh.quaternion,
+        1.0 - Math.pow(0.5, systemStep * cameraSettings.slerpCoefficient)
+      );
 
-    cameraSettings.idealOffset.set(
-      cameraSettings.position.x,
-      cameraSettings.position.y,
-      cameraSettings.position.z
-    );
+      cameraSettings.idealOffset.set(
+        cameraSettings.position.x,
+        cameraSettings.position.y,
+        cameraSettings.position.z
+      );
+    }
   }
 }

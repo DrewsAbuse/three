@@ -7,8 +7,7 @@ import {componentIds} from '../components';
 import {Component, keysInputComponent} from '../components';
 import {autoIncrementId} from '../helpers';
 import {player as playerJSON} from '../env.ts';
-import {effectsRegistrar, signalsRegistrar} from '../../GUI/signals.ts';
-import {invokeCallbacksOnEntityComponent} from './index.ts';
+import {signalsRegistrar} from '../../GUI/signals.ts';
 
 const gltfLoader = new GLTFLoader();
 
@@ -22,6 +21,9 @@ export const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').th
 
 export const {MOVE_ACCELERATION, MOVE_DECELERATION, ROTATION_ACCELERATION, ROTATION_DECELERATION} =
   playerJSON.MOVE;
+
+export const forwardAcceleration = signalsRegistrar.createSignal<number>(MOVE_ACCELERATION.z);
+export const forwardDeceleration = signalsRegistrar.createSignal<number>(MOVE_DECELERATION.z);
 
 export const createPlayer = (): EntityInput => {
   const mesh = new Mesh();
@@ -62,8 +64,29 @@ export const createPlayer = (): EntityInput => {
   const UIWriteComponent = new Component({
     id: componentIds.uiWrite,
     data: {
-      signalIds: [],
-      signalIdToUpdateId: {},
+      signalIds: [forwardAcceleration.id, forwardDeceleration.id],
+      signalIdToSetter: {
+        [forwardAcceleration.id]: {
+          updateId: forwardAcceleration.setterVersion,
+          setter: ({value, partition, idToComponentOffset, index}) => {
+            const movement = partition[
+              index + idToComponentOffset[componentIds.movement]
+            ] as MovementComponentData;
+
+            movement[movementComponentDataIndexes.accelerationMove].z = value as number;
+          },
+        },
+        [forwardDeceleration.id]: {
+          updateId: forwardDeceleration.setterVersion,
+          setter: ({value, partition, idToComponentOffset, index}) => {
+            const movement = partition[
+              index + idToComponentOffset[componentIds.movement]
+            ] as MovementComponentData;
+
+            movement[movementComponentDataIndexes.decelerationMove].z = value as number;
+          },
+        },
+      },
     },
   });
   const UIReadComponent = new Component({
@@ -87,19 +110,4 @@ export const createPlayer = (): EntityInput => {
   };
 };
 
-export const forwardAcceleration = signalsRegistrar.createSignal<number>(MOVE_ACCELERATION.z);
-export const forwardDeceleration = signalsRegistrar.createSignal<number>(MOVE_DECELERATION.z);
-
 export const player = createPlayer();
-
-invokeCallbacksOnEntityComponent(player, [
-  {
-    componentId: componentIds.movement,
-    callback: (movementData: MovementComponentData) => {
-      effectsRegistrar.subscribeEffectToSignals(() => {
-        movementData[movementComponentDataIndexes.accelerationMove].z = forwardAcceleration.value;
-        movementData[movementComponentDataIndexes.decelerationMove].z = forwardDeceleration.value;
-      });
-    },
-  },
-]);

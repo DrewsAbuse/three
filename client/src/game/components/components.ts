@@ -13,7 +13,8 @@ import type {
 } from 'three';
 import type {KeysInput, MovementComponentData} from './';
 import type {CameraComponentData} from './camera.ts';
-import type {ExtractRecordValue} from '../types';
+import type {ArchetypePartition, ExtractRecordValue} from '../types';
+import {Signal} from "../../GUI";
 
 export enum componentIds {
   keysInput = 1,
@@ -73,10 +74,20 @@ export class Component<T extends ComponentKeys = ComponentKeys> {
 type SingletonComponentsData = KeysInput;
 
 type SignalId = string;
-type SignalUpdateId = number;
+
+type UIWriteSetter = {
+  updateId: number;
+  setter: (params: {
+    value: unknown;
+    partition: ArchetypePartition;
+    idToComponentOffset: Record<number, number>;
+    index: number;
+  }) => void;
+};
+
 type UIWrite = {
   signalIds: SignalId[];
-  signalIdToUpdateId: Record<SignalId, SignalUpdateId>;
+  signalIdToSetter: Record<SignalId, UIWriteSetter>;
 };
 type UIRead = true;
 
