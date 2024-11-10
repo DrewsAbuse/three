@@ -1,4 +1,5 @@
 import type {ComponentsData} from '../components';
+import {ComponentIdToMeta, PartitionBufferStoreBase} from '../storage/buffer.ts';
 
 type IsEntityDeleted = 0 | 1;
 type IsEntityDirty = 0 | 1;
@@ -14,16 +15,24 @@ export type TwoDimensionalArray = [
   ...EntityArray,
 ][];
 export type ArchetypePartition = TwoDimensionalArray[number];
-export type EntityInputs = {componentIds: ComponentIds; entities: EntityArray[]};
 export type EntityInput = {entityArray: EntityArray; componentsId: Uint16Array};
 export type ComponentIds = Readonly<Uint16Array>;
+export type EntityInputs = {componentIds: ComponentIds; entities: EntityArray[]};
+
+export type EntityInputV2 = {
+  entityArray: Float64Array;
+  componentIds: Uint16Array;
+  shape: ComponentIdToMeta;
+};
+
+export type EntityInputsV2 = {
+  componentIds: ComponentIds;
+  entities: Float64Array[];
+  shape: ComponentIdToMeta;
+};
 
 export type TickParams = {
   systemStep: number;
-  partition: ArchetypePartition;
-  idToComponentOffset: ComponentsIndexesOffset;
-  entityStartOffset: number;
-  lastLiveEntityIndex: number;
-  entityLength: number;
+  partition: PartitionBufferStoreBase;
 };
 export type ExtractRecordValue<T> = T extends infer U ? U[keyof U] : never;

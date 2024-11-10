@@ -8,7 +8,7 @@ import {
   Vector3,
 } from 'three';
 import type {BufferGeometry, Material, TypedArray} from 'three';
-import {rainbowColors} from './index.ts';
+import {rainbowColors} from './utils.ts';
 
 type ComposeInstancedMeshParams = {
   attributes: {
