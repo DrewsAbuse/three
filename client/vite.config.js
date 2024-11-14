@@ -1,20 +1,22 @@
-import {resolve} from 'path';
-import {fileURLToPath} from 'url';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {defineConfig} from 'vite';
-import vercelPlugin from 'vite-plugin-vercel';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const dirname = fileURLToPath(new URL('.', import.meta.url));
 
-const root = resolve(__dirname, 'src');
-const outDir = resolve(__dirname, 'dist');
+const root = resolve(dirname, 'src');
+const outDir = resolve(dirname, 'dist');
 
 export default defineConfig({
   appType: 'mpa',
   root,
+  esbuild: {
+    target: 'es2022',
+  },
   build: {
     outDir,
     emptyOutDir: true,
-    target: 'esnext',
+    target: 'es2022',
     minify: true,
     rollupOptions: {
       input: {
@@ -29,7 +31,6 @@ export default defineConfig({
       },
     },
   },
-  plugins: [vercelPlugin()],
   vercel: {
     rewrites: [
       {
