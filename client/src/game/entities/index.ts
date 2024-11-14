@@ -1,7 +1,5 @@
-import type {ComponentIdToTypes, ComponentLabelToTypes} from '../components';
-import type {EntityInput, EntityInputs} from '../types';
-import {componentIds} from '../components';
-import {autoIncrementId} from '../helpers';
+import type {ComponentIdToData} from '../components';
+import type {EntityInput} from '../types';
 
 export const ENTITY_OFFSETS = {
   entityIdOffset: 0,
@@ -10,29 +8,7 @@ export const ENTITY_OFFSETS = {
   entityComponentsOffset: 3,
 } as const;
 
-export const createEntity = <T extends ComponentLabelToTypes>(
-  componentsWithData: Partial<T>[]
-): EntityInputs => {
-  const keys = Object.keys(componentsWithData[0]).sort() as (keyof ComponentLabelToTypes)[];
-
-  return {
-    componentIds: new Uint16Array(
-      keys.map(
-        key =>
-          //@ts-ignore
-          componentIds[key]
-      )
-    ),
-    entities: componentsWithData.map(componentData => [
-      autoIncrementId(),
-      0,
-      0,
-      ...keys.map(key => componentData[key]!),
-    ]),
-  };
-};
-
-export const invokeCallbacksOnEntityComponent = <T extends ComponentIdToTypes[number]>(
+export const invokeCallbacksOnEntityComponent = <T extends ComponentIdToData[number]>(
   entityInput: EntityInput,
   arr: {
     componentId: number;
@@ -41,8 +17,7 @@ export const invokeCallbacksOnEntityComponent = <T extends ComponentIdToTypes[nu
 ) => {
   for (const {componentId, callback} of arr) {
     const movementComponentIndex =
-      entityInput.componentsId.findIndex(id => id === componentId) +
-      ENTITY_OFFSETS.entityComponentsOffset;
+      entityInput.componentsId.indexOf(componentId) + ENTITY_OFFSETS.entityComponentsOffset;
 
     for (let i = ENTITY_OFFSETS.entityComponentsOffset; i < entityInput.entityArray.length; i++) {
       if (i === movementComponentIndex) {
@@ -52,7 +27,7 @@ export const invokeCallbacksOnEntityComponent = <T extends ComponentIdToTypes[nu
   }
 };
 
-export const invokeCallbackOnEntityComponent = <T extends ComponentIdToTypes[number]>(
+export const invokeCallbackOnEntityComponent = <T extends ComponentIdToData[number]>(
   entityInput: EntityInput,
   {
     componentId,
@@ -63,8 +38,7 @@ export const invokeCallbackOnEntityComponent = <T extends ComponentIdToTypes[num
   }
 ) => {
   const movementComponentIndex =
-    entityInput.componentsId.findIndex(id => id === componentId) +
-    ENTITY_OFFSETS.entityComponentsOffset;
+    entityInput.componentsId.indexOf(componentId) + ENTITY_OFFSETS.entityComponentsOffset;
 
   for (let i = ENTITY_OFFSETS.entityComponentsOffset; i < entityInput.entityArray.length; i++) {
     if (i === movementComponentIndex) {

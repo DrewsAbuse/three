@@ -1,13 +1,13 @@
 import type {TickParams} from '../../types';
-import type {ComponentIdToTypes} from '../../components';
+import type {ComponentIdToData} from '../../components';
 import {System} from '../base.ts';
-import {componentIds} from '../../components';
+import {componentIdsEnum} from '../../components';
 import {signalsRegistrar} from '../../../GUI';
 
 export class UIWriteSystem extends System {
   constructor() {
     super({
-      requiredComponents: new Uint16Array([componentIds.uiWrite]),
+      requiredComponents: new Uint16Array([componentIdsEnum.uiWrite]),
     });
   }
 
@@ -24,7 +24,7 @@ export class UIWriteSystem extends System {
   }: TickParams) {
     this.signalIdsForUIWrite.length = 0;
 
-    const uiWriteIndex = idToComponentOffset[componentIds.uiWrite];
+    const uiWriteIndex = idToComponentOffset[componentIdsEnum.uiWrite];
 
     for (const [signalId, lastUpdatedVersion] of this.signalIdToLastUpdatedVersion) {
       const signal = signalsRegistrar.getSignalById(signalId);
@@ -41,7 +41,9 @@ export class UIWriteSystem extends System {
     }
 
     for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
-      const uiWrite = partition[index + uiWriteIndex] as ComponentIdToTypes[componentIds.uiWrite];
+      const uiWrite = partition[
+        index + uiWriteIndex
+      ] as ComponentIdToData[componentIdsEnum.uiWrite];
 
       for (let i = 0; i < this.signalIdsForUIWrite.length; i++) {
         const signalId = this.signalIdsForUIWrite[i];

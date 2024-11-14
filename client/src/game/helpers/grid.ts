@@ -1,4 +1,4 @@
-import type {Object3D, Vector3} from 'three';
+import {Object3D, Vector3} from 'three';
 import {GRID_DIVISIONS, GRID_SIZE} from '../env.ts';
 
 export class SpatialHashGrid {
@@ -93,6 +93,6 @@ export class SpatialHashGrid {
       }
     }
 
-    return Array.prototype.concat.apply([], temp);
+    return temp.flat() as any;
   }
 }

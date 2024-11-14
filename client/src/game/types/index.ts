@@ -14,9 +14,9 @@ export type TwoDimensionalArray = [
   ...EntityArray,
 ][];
 export type ArchetypePartition = TwoDimensionalArray[number];
+export type ComponentIds = Readonly<Uint16Array>;
 export type EntityInputs = {componentIds: ComponentIds; entities: EntityArray[]};
 export type EntityInput = {entityArray: EntityArray; componentsId: Uint16Array};
-export type ComponentIds = Readonly<Uint16Array>;
 
 export type TickParams = {
   systemStep: number;

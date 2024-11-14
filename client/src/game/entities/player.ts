@@ -1,10 +1,13 @@
 import {Mesh, Object3D, Quaternion, Vector3} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import type {EntityInput} from '../types';
-import type {ComponentIdToTypes, MovementComponentData} from '../components';
-import {movementComponentDataIndexes} from '../components';
-import {componentIds} from '../components';
-import {Component, keysInputComponent} from '../components';
+import type {ComponentIdToData, MovementComponentData} from '../components';
+import {
+  Component,
+  componentIdsEnum,
+  keysInputComponent,
+  movementComponentDataIndexes,
+} from '../components';
 import {autoIncrementId} from '../helpers';
 import {player as playerJSON} from '../env.ts';
 import {signalsRegistrar} from '../../GUI/signals.ts';
@@ -31,10 +34,10 @@ export const createPlayer = (): EntityInput => {
 
   const meshComponent = new Component({
     data: mesh,
-    id: componentIds.mesh,
+    id: componentIdsEnum.mesh,
   });
 
-  const moveData: ComponentIdToTypes[componentIds.movement] = [
+  const moveData: ComponentIdToData[componentIdsEnum.movement] = [
     new Vector3(),
     new Vector3(MOVE_ACCELERATION.x, MOVE_ACCELERATION.y, MOVE_ACCELERATION.z),
     new Vector3(MOVE_DECELERATION.x, MOVE_DECELERATION.y, MOVE_DECELERATION.z),
@@ -45,7 +48,7 @@ export const createPlayer = (): EntityInput => {
 
   const movementComponent = new Component({
     data: moveData,
-    id: componentIds.movement,
+    id: componentIdsEnum.movement,
   });
   const keysComponent = keysInputComponent;
 
@@ -58,19 +61,19 @@ export const createPlayer = (): EntityInput => {
       lerpCoefficient: 10,
       slerpCoefficient: 5,
     },
-    id: componentIds.camera,
+    id: componentIdsEnum.camera,
   });
 
   const UIWriteComponent = new Component({
-    id: componentIds.uiWrite,
+    id: componentIdsEnum.uiWrite,
     data: {
       signalIds: [forwardAcceleration.id, forwardDeceleration.id],
       signalIdToSetter: {
         [forwardAcceleration.id]: {
           updateId: forwardAcceleration.setterVersion,
-          setter: ({value, partition, idToComponentOffset, index}) => {
+          setter({value, partition, idToComponentOffset, index}) {
             const movement = partition[
-              index + idToComponentOffset[componentIds.movement]
+              index + idToComponentOffset[componentIdsEnum.movement]
             ] as MovementComponentData;
 
             movement[movementComponentDataIndexes.accelerationMove].z = value as number;
@@ -78,9 +81,9 @@ export const createPlayer = (): EntityInput => {
         },
         [forwardDeceleration.id]: {
           updateId: forwardDeceleration.setterVersion,
-          setter: ({value, partition, idToComponentOffset, index}) => {
+          setter({value, partition, idToComponentOffset, index}) {
             const movement = partition[
-              index + idToComponentOffset[componentIds.movement]
+              index + idToComponentOffset[componentIdsEnum.movement]
             ] as MovementComponentData;
 
             movement[movementComponentDataIndexes.decelerationMove].z = value as number;
@@ -90,7 +93,7 @@ export const createPlayer = (): EntityInput => {
     },
   });
   const UIReadComponent = new Component({
-    id: componentIds.uiRead,
+    id: componentIdsEnum.uiRead,
     data: true,
   });
 

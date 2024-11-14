@@ -1,7 +1,7 @@
 import {AxesHelper, ConeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera} from 'three';
 import type {TickParams} from '../types';
-import type {ComponentIdToTypes} from '../components';
-import {componentIds} from '../components';
+import type {ComponentIdToData} from '../components';
+import {componentIdsEnum} from '../components';
 import {System} from './base.ts';
 
 const FOV = 100;
@@ -26,7 +26,7 @@ export class CameraSystem extends System {
 
   constructor() {
     super({
-      requiredComponents: new Uint16Array([componentIds.camera, componentIds.mesh]),
+      requiredComponents: new Uint16Array([componentIdsEnum.camera, componentIdsEnum.mesh]),
     });
   }
 
@@ -38,23 +38,23 @@ export class CameraSystem extends System {
     lastLiveEntityIndex,
     idToComponentOffset,
   }: TickParams) {
-    const cameraIndex = idToComponentOffset[componentIds.camera];
-    const meshIndex = idToComponentOffset[componentIds.mesh];
+    const cameraIndex = idToComponentOffset[componentIdsEnum.camera];
+    const meshIndex = idToComponentOffset[componentIdsEnum.mesh];
 
     for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
-      const mesh = partition[index + meshIndex] as ComponentIdToTypes[componentIds.mesh];
+      const mesh = partition[index + meshIndex] as ComponentIdToData[componentIdsEnum.mesh];
       const cameraSettings = partition[
         index + cameraIndex
-      ] as ComponentIdToTypes[componentIds.camera];
+      ] as ComponentIdToData[componentIdsEnum.camera];
 
       this.camera.position.lerp(
         cameraSettings.idealOffset.applyQuaternion(mesh.quaternion).add(mesh.position),
-        1.0 - Math.pow(0.5, systemStep * cameraSettings.lerpCoefficient)
+        1.0 - 0.5 ** (systemStep * cameraSettings.lerpCoefficient)
       );
 
       this.camera.quaternion.slerp(
         mesh.quaternion,
-        1.0 - Math.pow(0.5, systemStep * cameraSettings.slerpCoefficient)
+        1.0 - 0.5 ** (systemStep * cameraSettings.slerpCoefficient)
       );
 
       cameraSettings.idealOffset.set(

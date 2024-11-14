@@ -1,26 +1,27 @@
 const DB_NAME = 'EntityDB';
 const ENTITIES_STORE_NAME = 'entities';
 
-let db: IDBDatabase | null = null;
+let DB: IDBDatabase | null = null;
 const request = indexedDB.open(DB_NAME, 1);
+
 request.onupgradeneeded = event => {
   const db = (event.target as IDBOpenDBRequest).result;
   db.createObjectStore(ENTITIES_STORE_NAME, {keyPath: 'name'});
 };
 request.onsuccess = () => {
-  db = request.result;
+  DB = request.result;
 };
 request.onerror = () => new Error('IndexedDB failed to open.');
 
 const ensureDbReady = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    if (db) {
-      resolve(db);
+    if (DB) {
+      resolve(DB);
     } else {
       const checkInterval = setInterval(() => {
-        if (db) {
+        if (DB) {
           clearInterval(checkInterval);
-          resolve(db);
+          resolve(DB);
         }
       }, 100);
       setTimeout(() => {
@@ -36,14 +37,15 @@ export const getEntityData = (entity: string): Promise<unknown> =>
       new Promise((resolve, reject) => {
         const transaction = db.transaction(ENTITIES_STORE_NAME, 'readonly');
         const store = transaction.objectStore(ENTITIES_STORE_NAME);
-        const request = store.get(entity);
+        const getEntityDataRequest = store.get(entity);
 
-        request.onsuccess = event => {
+        getEntityDataRequest.onsuccess = event => {
           const {result} = event.target as IDBRequest;
-          result ? resolve(result.data) : reject('Entity not found');
+
+          return result ? resolve(result.data) : reject(new Error('Entity not found'));
         };
 
-        request.onerror = () => reject('Error fetching entity');
+        getEntityDataRequest.onerror = () => reject(new Error('Error getting entity data'));
       })
   );
 
@@ -53,9 +55,9 @@ export const storeEntityData = (entity: string, data: unknown): Promise<void> =>
       new Promise((resolve, reject) => {
         const transaction = db.transaction(ENTITIES_STORE_NAME, 'readwrite');
         const store = transaction.objectStore(ENTITIES_STORE_NAME);
-        const request = store.put({name: entity, data});
+        const storeEntityDataRequest = store.put({name: entity, data});
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject('Error storing entity data');
+        storeEntityDataRequest.onsuccess = () => resolve();
+        storeEntityDataRequest.onerror = () => reject(new Error('Error storing entity data'));
       })
   );

@@ -12,8 +12,5 @@ export abstract class System {
 }
 
 export abstract class SubSystem {
-  update({timeElapsedS}: {timeElapsedS: number; props: Record<string, unknown>}) {
-    console.log(timeElapsedS);
-    throw new Error('update not implemented');
-  }
+  abstract update({timeElapsedS}: {timeElapsedS: number; props: Record<string, unknown>}): void;
 }

@@ -1,6 +1,8 @@
+import assert from 'node:assert';
+import {test} from 'node:test';
 import {ComputedSignal, Signal, effectsRegistrar} from './signals.ts';
 
-it('emit effects in getter - tree of 2 then tree of 3', () => {
+test('emit effects in getter - tree of 2 then tree of 3', () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -22,7 +24,6 @@ it('emit effects in getter - tree of 2 then tree of 3', () => {
       value: signal.value,
     });
     tree.child.text = signal.value.toString();
-    console.log(`🔍end effect1 #1:`, signal.value);
   });
 
   signal.value = 1;
@@ -32,15 +33,16 @@ it('emit effects in getter - tree of 2 then tree of 3', () => {
       name: 'effect2',
       value: signal.value,
     });
-
     tree.child.child.text = signal.value.toString();
-    console.log(`🔍end effect2 #2:`, signal.value);
   });
 
   signal.value = 2;
 
-  expect(signal.value).toBe(2); //emit effect1 and effect2
-  expect(tree).toEqual({
+  // Check the current signal value
+  assert.strictEqual(signal.value, 2);
+
+  // Check if the tree structure matches expected values
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '2',
@@ -57,13 +59,16 @@ it('emit effects in getter - tree of 2 then tree of 3', () => {
     {name: 'effect2', value: 2},
   ];
 
-  expect(effects).toEqual(expectedFor2);
+  // Validate effects for the signal value of 2
+  assert.deepStrictEqual(effects, expectedFor2);
 
   signal.value = 3;
 
-  expect(signal.value).toBe(3);
+  // Check if signal value has updated correctly
+  assert.strictEqual(signal.value, 3);
 
-  expect(tree).toEqual({
+  // Validate updated tree structure
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '3',
@@ -72,14 +77,16 @@ it('emit effects in getter - tree of 2 then tree of 3', () => {
       },
     },
   });
-  expect(effects).toEqual([
+
+  // Validate effects log for the signal value of 3
+  assert.deepStrictEqual(effects, [
     ...expectedFor2,
     {name: 'effect1', value: 3},
     {name: 'effect2', value: 3},
   ]);
 });
 
-it('tree of 3', () => {
+test('tree of 3', () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -98,6 +105,7 @@ it('tree of 3', () => {
     },
   };
 
+  // Subscribe the first effect to signal changes
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
@@ -105,13 +113,11 @@ it('tree of 3', () => {
     });
 
     tree.child.text = signal.value.toString();
-    console.log(`🔍end effect1 #1`, signal.value);
   });
 
-  console.log(`🔍signal.value = 1.......`);
   signal.value = 1;
-  console.log(`🔍signal.value = 1!!!!!`);
 
+  // Subscribe the second effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
@@ -119,11 +125,11 @@ it('tree of 3', () => {
     });
 
     tree.child.child.text = signal.value.toString();
-    console.log(`🔍end effect2 #2`, signal.value);
   });
 
   signal.value = 2;
 
+  // Subscribe the third effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect3',
@@ -131,13 +137,15 @@ it('tree of 3', () => {
     });
 
     tree.child.child.child.text = signal.value.toString();
-    console.log(`🔍end effect3 #3`, signal.value);
   });
 
   signal.value = 3;
 
-  expect(signal.value).toBe(3);
-  expect(tree).toEqual({
+  // Validate final signal value
+  assert.strictEqual(signal.value, 3);
+
+  // Validate tree structure after all updates
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '3',
@@ -149,7 +157,9 @@ it('tree of 3', () => {
       },
     },
   });
-  expect(effects).toEqual([
+
+  // Validate effects log
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 0},
     {name: 'effect2', value: 1},
     {name: 'effect3', value: 2},
@@ -157,20 +167,9 @@ it('tree of 3', () => {
     {name: 'effect2', value: 3},
     {name: 'effect3', value: 3},
   ]);
-  //
-  // expect(effects).toEqual([
-  // {name: 'effect1', value: 0},
-  // {name: 'effect2', value: 1},
-  // {name: 'effect3', value: 2},
-  // {name: 'effect1', value: 3},
-  // {name: 'effect2', value: 3},
-  // {name: 'effect3', value: 3},
-  // ]);
-  //
-  //
 });
 
-it('tree of 3,4,4', () => {
+test('tree of 3,4,4', () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -189,53 +188,48 @@ it('tree of 3,4,4', () => {
     },
   };
 
+  // Subscribe the first effect to signal changes
   effectsRegistrar.subscribeEffectToSignals(() => {
-    console.log(`🔍start effect1 #1`);
     effects.push({
       name: 'effect1',
       value: signal.value,
     });
     tree.child.text = signal.value.toString();
 
-    console.log(`⚙️ incrementing signal value...`);
-    signal.value = signal.value + 1;
-    console.log(`⚙️ incremented signal value!!!`);
-    console.log(`🔍end effect1 #1`);
+    signal.value += 1;
   });
 
   signal.value = 1;
 
+  // Subscribe the second effect
   effectsRegistrar.subscribeEffectToSignals(() => {
-    console.log(`🔍start effect2 #2:`);
-
     effects.push({
       name: 'effect2',
       value: signal.value,
     });
 
     tree.child.child.text = signal.value.toString();
-
-    console.log(`🔍end effect2 #2:`);
   });
 
   signal.value = 2;
 
+  // Subscribe the third effect
   effectsRegistrar.subscribeEffectToSignals(() => {
-    console.log(`🔍start effect3 #3`);
-
     effects.push({
       name: 'effect3',
       value: signal.value,
     });
 
     tree.child.child.child.text = signal.value.toString();
-    console.log(`🔍end effect3 #3:`);
   });
 
   signal.value = 3;
 
-  expect(signal.value).toBe(4);
-  expect(tree).toEqual({
+  // Check that the signal value has been incremented as expected
+  assert.strictEqual(signal.value, 4);
+
+  // Validate the tree structure after all updates
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '3',
@@ -248,7 +242,8 @@ it('tree of 3,4,4', () => {
     },
   });
 
-  expect(effects).toEqual([
+  // Validate effects log
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 0},
     {name: 'effect2', value: 1},
     {name: 'effect3', value: 2},
@@ -258,7 +253,7 @@ it('tree of 3,4,4', () => {
   ]);
 });
 
-it('tree of 3,4,5', () => {
+test('tree of 3,4,5', () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -277,49 +272,51 @@ it('tree of 3,4,5', () => {
     },
   };
 
+  // Subscribe the first effect to signal changes
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     tree.child.text = signal.value.toString();
 
-    console.log(`⚙️ incrementing signal value...`);
-    signal.value = signal.value + 1;
-    console.log(`⚙️ incremented signal value!!!`);
+    signal.value += 1;
   });
 
   signal.value = 1;
 
+  // Subscribe the second effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
       value: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
     tree.child.child.text = signal.value.toString();
 
-    console.log(`⚙️ incrementing signal value...`);
-    signal.value = signal.value + 1;
-    console.log(`⚙️ incremented signal value!!!`);
+    signal.value += 1;
   });
 
   signal.value = 2;
 
+  // Subscribe the third effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect3',
       value: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
   signal.value = 3;
 
-  expect(signal.value).toBe(5);
-  expect(tree).toEqual({
+  // Validate final signal value
+  assert.strictEqual(signal.value, 5);
+
+  // Validate the tree structure after all updates
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '3',
@@ -331,7 +328,9 @@ it('tree of 3,4,5', () => {
       },
     },
   });
-  expect(effects).toEqual([
+
+  // Validate effects log
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 0},
     {name: 'effect2', value: 1},
     {name: 'effect3', value: 2},
@@ -341,7 +340,7 @@ it('tree of 3,4,5', () => {
   ]);
 });
 
-it('emit in microtask after other microtask - tree of 2 then tree of 3', async () => {
+test('emit in microtask after other microtask - tree of 2 then tree of 3', async () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -357,36 +356,34 @@ it('emit in microtask after other microtask - tree of 2 then tree of 3', async (
     },
   };
 
+  // Subscribe the first effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: signal.value,
     });
     tree.child.text = signal.value.toString();
-    console.log(`🔍end effect1 #1:`, signal.value);
   });
 
   signal.value = 1;
 
+  // Subscribe the second effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
       value: signal.value,
     });
-
     tree.child.child.text = signal.value.toString();
-    console.log(`🔍end effect2 #2:`, signal.value);
   });
 
   signal.value = 2;
 
-  //Break syncronous, emit effects in microtask
+  // Break synchronous flow and emit effects in a microtask
   await Promise.resolve();
-  // expect(signal.value).toBe(2); not needed get value for emitting effects
 
-  expect(signal.value).toBe(2);
-
-  expect(tree).toEqual({
+  // Check intermediate state after setting `signal.value` to 2
+  assert.strictEqual(signal.value, 2);
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '2',
@@ -403,29 +400,34 @@ it('emit in microtask after other microtask - tree of 2 then tree of 3', async (
     {name: 'effect2', value: 2},
   ];
 
-  expect(effects).toEqual(expectedFor2);
+  // Verify effects log after the first set of changes
+  assert.deepStrictEqual(effects, expectedFor2);
 
+  // Update signal to trigger further effects
   signal.value = 3;
 
-  await wait(50).then(() => {
-    expect(tree).toEqual({
-      text: 'root',
+  // Wait briefly to allow for asynchronous effects to propagate
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // Verify final state of tree and effects
+  assert.deepStrictEqual(tree, {
+    text: 'root',
+    child: {
+      text: '3',
       child: {
         text: '3',
-        child: {
-          text: '3',
-        },
       },
-    });
-    expect(effects).toEqual([
-      ...expectedFor2,
-      {name: 'effect1', value: 3},
-      {name: 'effect2', value: 3},
-    ]);
+    },
   });
+
+  assert.deepStrictEqual(effects, [
+    ...expectedFor2,
+    {name: 'effect1', value: 3},
+    {name: 'effect2', value: 3},
+  ]);
 });
 
-it('emit in microtask after macrotask - tree of 3', () => {
+test('emit in microtask after macrotask - tree of 3', async () => {
   const signal = new Signal(0);
   const effects: {
     name: string;
@@ -444,84 +446,70 @@ it('emit in microtask after macrotask - tree of 3', () => {
     },
   };
 
+  // Register the first effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: signal.value,
     });
-
     tree.child.text = signal.value.toString();
-    console.log(`🔍end effect1 #1`, signal.value);
   });
 
-  console.log(`🔍signal.value = 1.......`);
   signal.value = 1;
-  console.log(`🔍signal.value = 1!!!!!`);
 
+  // Register the second effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
       value: signal.value,
     });
-
     tree.child.child.text = signal.value.toString();
-    console.log(`🔍end effect2 #2`, signal.value);
   });
 
   signal.value = 2;
 
+  // Register the third effect
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect3',
       value: signal.value,
     });
-
     tree.child.child.child.text = signal.value.toString();
-    console.log(`🔍end effect3 #3`, signal.value);
   });
 
   signal.value = 3;
 
-  setTimeout(() => {
-    expect(tree).toEqual({
-      text: 'root',
+  // Use a Promise-based timeout to simulate the macrotask delay
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  // Validate the final tree structure after the effects have propagated
+  assert.deepStrictEqual(tree, {
+    text: 'root',
+    child: {
+      text: '3',
       child: {
         text: '3',
         child: {
           text: '3',
-          child: {
-            text: '3',
-          },
         },
       },
-    });
-    expect(effects).toEqual([
-      {name: 'effect1', value: 0},
-      {name: 'effect2', value: 1},
-      {name: 'effect3', value: 2},
-      {name: 'effect1', value: 3},
-      {name: 'effect2', value: 3},
-      {name: 'effect3', value: 3},
-    ]);
-  }, 0);
+    },
+  });
 
-  //
-  // expect(effects).toEqual([
-  // {name: 'effect1', value: 0},
-  // {name: 'effect2', value: 1},
-  // {name: 'effect3', value: 2},
-  // {name: 'effect1', value: 3},
-  // {name: 'effect2', value: 3},
-  // {name: 'effect3', value: 3},
-  // ]);
-  //
-  //
+  // Validate the effects log after all updates
+  assert.deepStrictEqual(effects, [
+    {name: 'effect1', value: 0},
+    {name: 'effect2', value: 1},
+    {name: 'effect3', value: 2},
+    {name: 'effect1', value: 3},
+    {name: 'effect2', value: 3},
+    {name: 'effect3', value: 3},
+  ]);
 });
 
-it('computed tree of 3', () => {
+test('computed tree of 3', () => {
   const signal1 = new Signal(1);
   const signal2 = new Signal(1);
-
   const computed = new ComputedSignal(() => signal1.value + signal2.value);
 
   const effects: {
@@ -535,32 +523,34 @@ it('computed tree of 3', () => {
     },
   };
 
+  // Subscribe an effect to the computed value
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: computed.value,
     });
     tree.child.text = computed.value.toString();
-
-    console.log(`🔍end effect1 #1:`, computed.value);
   });
 
+  // Change signal1's value to trigger computed update
   signal1.value = 2;
 
-  expect(computed.value).toBe(3);
-  expect(tree).toEqual({
+  // Assertions to verify computed value and effect propagation
+  assert.strictEqual(computed.value, 3);
+  assert.deepStrictEqual(tree, {
     text: 'root',
     child: {
       text: '3',
     },
   });
-  expect(effects).toEqual([
+
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 2},
     {name: 'effect1', value: 3},
   ]);
 });
 
-it('computed tree of 1,1,4', () => {
+test('computed tree of 1,1,4', () => {
   const signal1 = new Signal(1);
   const signal2 = new Signal(1);
   const signal3 = new Signal(1);
@@ -584,40 +574,58 @@ it('computed tree of 1,1,4', () => {
     },
   };
 
+  // Subscribe to signal1
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: signal1.value,
     });
-    console.log(`🔍effect1 #1:`, signal1.value);
+
     tree.child.text = signal1.value.toString();
   });
 
+  // Subscribe to signal2
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
       value: signal2.value,
     });
-    console.log(`🔍effect2 #2:`, signal2.value);
+
     tree.child.child.text = signal2.value.toString();
   });
 
+  // Subscribe to computedSignal
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect3',
       value: computedSignal.value,
     });
-    console.log(`🔍effect3 #3:`, computedSignal.value);
+
     tree.child.child.child.text = computedSignal.value.toString();
   });
 
+  // Update signal3's value
   signal3.value = 2;
 
-  expect(signal1.value).toBe(1);
-  expect(signal2.value).toBe(1);
-  expect(computedSignal.value).toBe(4);
-  expect(tree).toEqual({child: {child: {child: {text: '4'}, text: '1'}, text: '1'}, text: 'root'});
-  expect(effects).toEqual([
+  // Assertions
+  assert.strictEqual(signal1.value, 1);
+  assert.strictEqual(signal2.value, 1);
+  assert.strictEqual(computedSignal.value, 4);
+
+  assert.deepStrictEqual(tree, {
+    text: 'root',
+    child: {
+      text: '1',
+      child: {
+        text: '1',
+        child: {
+          text: '4',
+        },
+      },
+    },
+  });
+
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 1},
     {name: 'effect2', value: 1},
     {name: 'effect3', value: 3},
@@ -625,7 +633,7 @@ it('computed tree of 1,1,4', () => {
   ]);
 });
 
-it('computed tree of 2,2,4', () => {
+test('computed tree of 2,2,4', () => {
   const signal1 = new Signal(1);
   const signal2 = new Signal(1);
 
@@ -648,44 +656,63 @@ it('computed tree of 2,2,4', () => {
     },
   };
 
+  // Register effect1 for signal1
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect1',
       value: signal1.value,
     });
-    console.log(`🔍effect1 #1:`, signal1.value);
+
     tree.child.text = signal1.value.toString();
   });
 
+  // Register effect2 for signal2
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect2',
       value: signal2.value,
     });
-    console.log(`🔍effect2 #2:`, signal2.value);
+
     tree.child.child.text = signal2.value.toString();
   });
 
+  // Register effect3 for computedSignal
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({
       name: 'effect3',
       value: computedSignal.value,
     });
-    console.log(`🔍effect3 #3:`, computedSignal.value);
+
     tree.child.child.child.text = computedSignal.value.toString();
   });
 
+  // Update signals and verify only unique value changes trigger effects
   signal1.value = 2;
   signal2.value = 2;
 
-  signal1.value = 2; //must be ignored because it's the same value
-  signal2.value = 2; //must be ignored because it's the same value
+  // These should be ignored as the values are the same
+  signal1.value = 2;
+  signal2.value = 2;
 
-  expect(signal1.value).toBe(2);
-  expect(signal2.value).toBe(2);
-  expect(computedSignal.value).toBe(4);
-  expect(tree).toEqual({child: {child: {child: {text: '4'}, text: '2'}, text: '2'}, text: 'root'});
-  expect(effects).toEqual([
+  // Assertions
+  assert.strictEqual(signal1.value, 2);
+  assert.strictEqual(signal2.value, 2);
+  assert.strictEqual(computedSignal.value, 4);
+
+  assert.deepStrictEqual(tree, {
+    text: 'root',
+    child: {
+      text: '2',
+      child: {
+        text: '2',
+        child: {
+          text: '4',
+        },
+      },
+    },
+  });
+
+  assert.deepStrictEqual(effects, [
     {name: 'effect1', value: 1},
     {name: 'effect2', value: 1},
     {name: 'effect3', value: 2},
@@ -697,7 +724,7 @@ it('computed tree of 2,2,4', () => {
 });
 
 //Skip async shiiiit
-
+/*
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 it.skip('async macrotask in effect tree of 3,3,3', async () => {
@@ -719,14 +746,14 @@ it.skip('async macrotask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect1', value: signal.value});
-    console.log(`🔍effect1 #1:`, signal.value);
+
     tree.child.text = signal.value.toString();
 
     setTimeout(() => {
       effectsAsync.push({name: 'effect1', value: signal.value});
-      console.log(`⚙️ effect1 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect1 incremented signal value!!!`);
+
+      signal.value += 1;
+
     }, 0);
   });
 
@@ -734,14 +761,14 @@ it.skip('async macrotask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect2', value: signal.value});
-    console.log(`🔍effect2 #2:`, signal.value);
+
     tree.child.child.text = signal.value.toString();
 
     setTimeout(() => {
       effectsAsync.push({name: 'effect2', value: signal.value});
-      console.log(`⚙️ effect2 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect2 incremented signal value!!!`);
+
+      signal.value += 1;
+
     }, 0);
   });
 
@@ -749,7 +776,7 @@ it.skip('async macrotask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect3', value: signal.value});
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
@@ -849,14 +876,14 @@ it.skip('async microtask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect1', value: signal.value});
-    console.log(`🔍effect1 #1:`, signal.value);
+
     tree.child.text = signal.value.toString();
 
     Promise.resolve().then(() => {
       effectsAsync.push({name: 'effect1', value: signal.value});
-      console.log(`⚙️ effect1 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect1 incremented signal value!!!`);
+
+      signal.value += 1;
+
     });
   });
 
@@ -864,14 +891,14 @@ it.skip('async microtask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect2', value: signal.value});
-    console.log(`🔍effect2 #2:`, signal.value);
+
     tree.child.child.text = signal.value.toString();
 
     Promise.resolve().then(() => {
       effectsAsync.push({name: 'effect2', value: signal.value});
-      console.log(`⚙️ effect2 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect2 incremented signal value!!!`);
+
+      signal.value += 1;
+
     });
   });
 
@@ -879,7 +906,7 @@ it.skip('async microtask in effect tree of 3,3,3', async () => {
 
   effectsRegistrar.subscribeEffectToSignals(() => {
     effects.push({name: 'effect3', value: signal.value});
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
@@ -944,7 +971,7 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
       name: 'effect1',
       value: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     tree.child.text = signal.value.toString();
 
     await wait(0).then(() => {
@@ -952,9 +979,9 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
         name: 'effect1',
         value: signal.value,
       });
-      console.log(`⚙️ effect1 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect1 incremented signal value!!!`);
+
+      signal.value += 1;
+
     });
   });
 
@@ -965,7 +992,7 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
       name: 'effect2',
       value: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
     tree.child.child.text = signal.value.toString();
 
     await wait(0).then(() => {
@@ -973,9 +1000,9 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
         name: 'effect2',
         value: signal.value,
       });
-      console.log(`⚙️ effect2 incrementing signal value...`);
-      signal.value = signal.value + 1;
-      console.log(`⚙️ effect2 incremented signal value!!!`);
+
+      signal.value += 1;
+
     });
   });
 
@@ -986,7 +1013,7 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
       name: 'effect3',
       value: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
@@ -1055,7 +1082,7 @@ it.skip('async fetch data in effect tree of data:3,data:3,data:3', async () => {
       name: 'effect1',
       text: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     tree.child.text = await fetchData(signal.value);
   });
 
@@ -1066,7 +1093,7 @@ it.skip('async fetch data in effect tree of data:3,data:3,data:3', async () => {
       name: 'effect2',
       text: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
     tree.child.child.text = await fetchData(signal.value);
   });
 
@@ -1077,7 +1104,7 @@ it.skip('async fetch data in effect tree of data:3,data:3,data:3', async () => {
       name: 'effect3',
       text: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = await fetchData(signal.value);
   });
 
@@ -1110,7 +1137,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
     new Promise<Signal<number>>(resolve => {
       setTimeout(() => {
         effectFetch.push({name: 'asyncIncrement', value: signal.value});
-        signal.value = signal.value + 2;
+        signal.value += 2;
 
         resolve(signal);
       }, 0);
@@ -1139,7 +1166,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
       name: 'effect1',
       text: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     const fetchedSignal = await asyncIncrement(signal);
     effectFetch.push({name: 'effect1', value: fetchedSignal.value});
     tree.child.text = fetchedSignal.value.toString();
@@ -1152,7 +1179,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
       name: 'effect2',
       text: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
 
     const fetchedSignal = await asyncIncrement(signal);
 
@@ -1168,7 +1195,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
       name: 'effect3',
       text: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
 
     tree.child.child.child.text = signal.value.toString();
   });
@@ -1208,7 +1235,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,7', async () => {
     new Promise<Signal<number>>(resolve => {
       setTimeout(() => {
         effectFetch.push({name: 'asyncIncrement', value: signal.value});
-        signal.value = signal.value + 2;
+        signal.value += 2;
 
         resolve(signal);
       }, 0);
@@ -1237,7 +1264,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,7', async () => {
       name: 'effect1',
       text: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     const fetchedSignal = await asyncIncrement(signal);
     effectFetch.push({name: 'effect1', value: fetchedSignal.value});
     tree.child.text = fetchedSignal.value.toString();
@@ -1250,7 +1277,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,7', async () => {
       name: 'effect2',
       text: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
 
     const fetchedSignal = await asyncIncrement(signal);
 
@@ -1268,7 +1295,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,7', async () => {
       name: 'effect3',
       text: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
@@ -1310,7 +1337,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,11', async () => {
     new Promise<Signal<number>>(resolve => {
       setTimeout(() => {
         effectFetch.push({name: 'asyncIncrement', value: signal.value});
-        signal.value = signal.value + 2;
+        signal.value += 2;
 
         resolve(signal);
       }, 0);
@@ -1339,7 +1366,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,11', async () => {
       name: 'effect1',
       text: signal.value,
     });
-    console.log(`🔍effect1 #1:`, signal.value);
+
     const fetchedSignal = await asyncIncrement(signal);
     effectFetch.push({name: 'effect1', value: fetchedSignal.value});
     tree.child.text = fetchedSignal.value.toString();
@@ -1352,7 +1379,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,11', async () => {
       name: 'effect2',
       text: signal.value,
     });
-    console.log(`🔍effect2 #2:`, signal.value);
+
 
     const fetchedSignal = await asyncIncrement(signal);
 
@@ -1370,7 +1397,7 @@ it.skip('async fetch mutated signal in effect tree of 9,11,11', async () => {
       name: 'effect3',
       text: signal.value,
     });
-    console.log(`🔍effect3 #3:`, signal.value);
+
     tree.child.child.child.text = signal.value.toString();
   });
 
@@ -1434,7 +1461,7 @@ it.skip('async effect computed tree of 2,2,4', async () => {
       name: 'effect1',
       value: signal1.value,
     });
-    console.log(`🔍effect1 #1:`, signal1.value);
+
     tree.child.text = signal1.value.toString();
 
     await wait(0).then(() => {
@@ -1442,9 +1469,9 @@ it.skip('async effect computed tree of 2,2,4', async () => {
         name: 'effect1',
         value: signal1.value,
       });
-      console.log(`⚙️ asyncEffect1 incrementing signal value...`);
-      signal1.value = signal1.value + 2;
-      console.log(`⚙️ asyncEffect1 incremented signal value!!!`);
+
+      signal1.value += 2;
+
     });
   });
 
@@ -1453,7 +1480,7 @@ it.skip('async effect computed tree of 2,2,4', async () => {
       name: 'effect2',
       value: signal2.value,
     });
-    console.log(`🔍effect2 #2:`, signal2.value);
+
     tree.child.child.text = signal2.value.toString();
 
     await wait(0).then(() => {
@@ -1461,9 +1488,9 @@ it.skip('async effect computed tree of 2,2,4', async () => {
         name: 'effect2',
         value: signal2.value,
       });
-      console.log(`⚙️ asyncEffect2 incrementing signal value...`);
-      signal2.value = signal2.value + 2;
-      console.log(`⚙️ asyncEffect2 incremented signal value!!!`);
+
+      signal2.value += 2;
+
     });
   });
 
@@ -1472,7 +1499,7 @@ it.skip('async effect computed tree of 2,2,4', async () => {
       name: 'effect3',
       value: computedSignal.value,
     });
-    console.log(`🔍effect3 #3:`, computedSignal.value);
+
     tree.child.child.child.text = computedSignal.value.toString();
   });
 
@@ -1501,3 +1528,6 @@ it.skip('async effect computed tree of 2,2,4', async () => {
     },
   ]);
 });
+
+
+ */

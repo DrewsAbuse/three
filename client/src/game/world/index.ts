@@ -1,2 +1,2 @@
-export * from './client';
-export * from './base';
+export * from './client.ts';
+export * from './base.ts';

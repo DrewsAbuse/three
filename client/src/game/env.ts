@@ -1,5 +1,8 @@
-import config from '../assets/config.json';
 import {getEntityData, storeEntityData} from './helpers/indexDB.ts';
+
+const config = await import('../assets/config.json', {
+  with: {type: 'json'},
+});
 
 export const {client, grid, entities} = config;
 
@@ -8,13 +11,15 @@ export const {GRID_SIZE, GRID_DIVISIONS} = grid;
 
 //TODO: FIX ANY
 export const {
-  player, // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  player,
 }: Record<string, Record<string, any>> = await (() =>
   entities.reduce(async (accPromise, entity) => {
     const acc = await accPromise;
 
     const data = await getEntityData(entity).catch(async () => {
-      const {default: dataFromFile} = await import(`../assets/entities/${entity}.json`);
+      const {default: dataFromFile} = await import(`../assets/entities/${entity}.json`, {
+        with: {type: 'json'},
+      });
 
       await storeEntityData(entity, dataFromFile);
 
@@ -25,12 +30,14 @@ export const {
   }, Promise.resolve({})))();
 
 export const {
-  player: playerDefaults, // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  player: playerDefaults,
 }: Record<string, Record<string, any>> = await (() =>
   entities.reduce(async (accPromise, entity) => {
     const acc = await accPromise;
 
-    const {default: dataFromFile} = await import(`../assets/entities/${entity}.json`);
+    const {default: dataFromFile} = await import(`../assets/entities/${entity}.json`, {
+      with: {type: 'json'},
+    });
 
     return {...acc, [entity]: dataFromFile};
   }, Promise.resolve({})))();

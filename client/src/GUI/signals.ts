@@ -57,7 +57,7 @@ export class Signal<T> {
   setterVersion = 0;
   private processingVersion = 0;
   private lastProcessedVersion = 0;
-  id: string = `signal-${Math.random().toString(36).substring(2, 5)}`;
+  id: string = `signal-${Math.random().toString(36).slice(2, 5)}`;
   constructor(initialValue: T) {
     this._value = initialValue;
   }

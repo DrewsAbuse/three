@@ -29,7 +29,7 @@ export class SpeedometerCustomElement extends ExtendedHTMLElement<SpeedometerPro
     const {speedSignal, maxSpeed} = this.getAttributes();
     const speedometerId = `speedometer-${Date.now().toString(36)}-${Math.random()
       .toString(36)
-      .substring(2, 5)}`;
+      .slice(2, 5)}`;
 
     this.setTemplate(/* HTML */ `
       <link rel="stylesheet" href="style.css" />

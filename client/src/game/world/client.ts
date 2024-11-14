@@ -1,18 +1,14 @@
-import {AmbientLight, Group, InstancedMesh, Mesh, Object3D} from 'three';
+import {AmbientLight, Group, InstancedMesh, Mesh, Object3D, Scene} from 'three';
 import Stats from 'stats.js';
-import {Scene} from 'three';
 import type {WebGLRenderer} from 'three';
-import type {Component, ComponentIdToTypes} from '../components';
-import type {EntityArray} from '../types';
-import type {WebGPURenderer} from '../helpers';
-import type {ArchetypeStorage} from './storage.ts';
-import {webGPURenderer} from '../helpers';
-import {componentIds} from '../components';
-import {createSkybox} from '../helpers';
+import {Component, ComponentIdToData, componentIdsEnum} from '../components';
 import {CameraSystem, UIWriteSystem} from '../systems';
-import {SpatialHashGrid} from '../helpers/grid.ts';
 import {FIXED_TIME_STEP, SYSTEM_STEP} from '../env.ts';
+import {skybox} from '../../assets/sky-box/skybox.ts';
+import {EntityArray} from '../types';
+import {ArchetypeStorage} from '../storage/index.ts';
 import {World} from './base.ts';
+import {WebGPURenderer, webGPURenderer} from './web-gup.ts';
 
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;
@@ -24,8 +20,20 @@ export class ClientWorld extends World {
     updateId: [0];
     meshToAdd: Component['data'][];
     meshToDelete: Component['data'][];
-    addMesh: (mesh: Component['data']) => void;
-    deleteMesh: (mesh: Component['data']) => void;
+    addMesh: (data: Component['data']) => void;
+    deleteMesh: (data: Component['data']) => void;
+  } = {
+    updateId: [0],
+    meshToAdd: [],
+    meshToDelete: [],
+    addMesh: (data: Component['data']) => {
+      this.sceneEntities.meshToAdd.push(data);
+      this.sceneEntities.updateId[0]++;
+    },
+    deleteMesh: (data: Component['data']) => {
+      this.sceneEntities.meshToDelete.push(data);
+      this.sceneEntities.updateId[0]++;
+    },
   };
 
   systemStep = SYSTEM_STEP;
@@ -33,8 +41,6 @@ export class ClientWorld extends World {
 
   cameraSystem = new CameraSystem();
   uiWriteSystem = new UIWriteSystem();
-
-  grid = new SpatialHashGrid();
 
   constructor(storage: ArchetypeStorage) {
     super(storage);
@@ -46,20 +52,7 @@ export class ClientWorld extends World {
 
     this.scene.add(this.cameraSystem.camera);
 
-    this.scene.background = createSkybox();
-    this.sceneEntities = {
-      updateId: [0],
-      meshToAdd: [],
-      meshToDelete: [],
-      addMesh: (data: Component['data']) => {
-        this.sceneEntities.meshToAdd.push(data);
-        this.sceneEntities.updateId[0]++;
-      },
-      deleteMesh: (data: Component['data']) => {
-        this.sceneEntities.meshToDelete.push(data);
-        this.sceneEntities.updateId[0]++;
-      },
-    };
+    this.scene.background = skybox;
 
     this.stats.showPanel(0);
     document.body.appendChild(this.stats.dom).style.position = 'absolute';
@@ -103,25 +96,19 @@ export class ClientWorld extends World {
       componentIds: params.componentsId,
     });
     const meshComponentIndex = params.componentsId.findIndex(
-      bitMask => bitMask === componentIds.mesh || bitMask === componentIds.instancedMesh
+      bitMask => bitMask === componentIdsEnum.mesh || bitMask === componentIdsEnum.instancedMesh
     );
 
     if (meshComponentIndex !== -1) {
       this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
     }
 
-    const uiWriteComponentIndex = params.componentsId.findIndex(
-      bitMask => bitMask === componentIds.uiWrite
-    );
+    const uiWriteComponentIndex = params.componentsId.indexOf(componentIdsEnum.uiWrite);
 
     if (uiWriteComponentIndex !== -1) {
-      console.log('uiWriteComponentIndex', uiWriteComponentIndex);
-
       const {signalIds, signalIdToSetter} = params.entityArray[
         uiWriteComponentIndex + 3
-      ] as ComponentIdToTypes[componentIds.uiWrite];
-
-      console.log('signalIds', params.entityArray);
+      ] as ComponentIdToData[componentIdsEnum.uiWrite];
 
       for (const signalId of signalIds) {
         const {updateId: signalVersion} = signalIdToSetter[signalId];
@@ -133,8 +120,6 @@ export class ClientWorld extends World {
 
   renderSceneSystem() {
     this.sceneEntities.meshToAdd.forEach(mesh => {
-      console.log();
-
       if (
         mesh instanceof Mesh ||
         mesh instanceof Group ||
@@ -153,8 +138,6 @@ export class ClientWorld extends World {
     this.sceneEntities.meshToDelete.forEach(mesh => {
       this.scene.remove(mesh as Mesh);
       this.grid.remove(mesh as Mesh);
-
-      return;
     });
 
     this.sceneEntities.meshToAdd.length = 0;
@@ -162,37 +145,30 @@ export class ClientWorld extends World {
   }
 
   runSystems() {
-    {
-      if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
-        this.renderSystemUpdateId = this.sceneEntities.updateId[0];
-        this.renderSceneSystem();
-      }
-
-      this.storage.applyTickToEntitiesByComponentIds({
-        systemStep: this.systemStep,
-        componentIds: this.movementsSystemRunner.requiredComponents,
-        system: this.movementsSystemRunner,
-      });
-      this.storage.applyTickToEntitiesByComponentIds({
-        systemStep: this.systemStep,
-        componentIds: this.cameraSystem.requiredComponents,
-        system: this.cameraSystem,
-      });
-      this.storage.applyTickToEntitiesByComponentIds({
-        systemStep: this.systemStep,
-        componentIds: this.uiWriteSystem.requiredComponents,
-        system: this.uiWriteSystem,
-      });
-
-      //
-      // this.storage.applyTickToEntitiesByComponentIds({
-      // now,
-      // timeElapsed,
-      // componentIds: this.cubeSnackSystem.requiredComponents,
-      // system: this.cubeSnackSystem,
-      // });
-      //
-      //
+    if (this.renderSystemUpdateId !== this.sceneEntities.updateId[0]) {
+      this.renderSystemUpdateId = this.sceneEntities.updateId[0];
+      this.renderSceneSystem();
     }
+
+    this.storage.applyTickToEntitiesByComponentIds({
+      systemStep: this.systemStep,
+      componentIds: this.movementsSystemRunner.requiredComponents,
+      system: this.movementsSystemRunner,
+    });
+    this.storage.applyTickToEntitiesByComponentIds({
+      systemStep: this.systemStep,
+      componentIds: this.cameraSystem.requiredComponents,
+      system: this.cameraSystem,
+    });
+    this.storage.applyTickToEntitiesByComponentIds({
+      systemStep: this.systemStep,
+      componentIds: this.uiWriteSystem.requiredComponents,
+      system: this.uiWriteSystem,
+    });
+    this.storage.applyTickToEntitiesByComponentIds({
+      systemStep: this.systemStep,
+      componentIds: this.collisionSystem.requiredComponents,
+      system: this.collisionSystem,
+    });
   }
 }

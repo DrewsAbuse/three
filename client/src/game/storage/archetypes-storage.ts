@@ -6,9 +6,9 @@ import type {
   TwoDimensionalArray,
 } from '../types';
 import type {System} from '../systems/base.ts';
-import type {ComponentIdToTypes} from '../components';
-import {InvertedIndex} from '../helpers/search.ts';
-import {ENTITY_OFFSETS} from '../entities';
+import type {ComponentIdToData} from '../components';
+import {ENTITY_OFFSETS} from '../entities/index.ts';
+import {InvertedIndex} from './inverted-index.ts';
 
 //New Solution without bitmask at all but with inverted index
 
@@ -53,7 +53,7 @@ export class ArchetypeStorage {
 
   public invokeCallbackOnEntityComponent(
     id: number,
-    callback: (entity: ComponentIdToTypes) => void
+    callback: (entity: ComponentIdToData) => void
   ): void {
     const entityIndexes = this.entityIdToIndexes.get(id);
 
@@ -74,12 +74,15 @@ export class ArchetypeStorage {
       return;
     }
 
-    const entityRecord: ComponentIdToTypes = {} as unknown as ComponentIdToTypes;
+    const entityRecord: ComponentIdToData = {} as unknown as ComponentIdToData;
 
-    for (const componentId in idToComponentOffset) {
+    const keys = Object.keys(idToComponentOffset);
+
+    for (let i = 0; i < keys.length; i++) {
+      const componentId = Number(keys[i]);
       const componentIndex = idToComponentOffset[componentId] + entityIndex;
 
-      entityRecord[componentId] = partition[componentIndex] as ComponentIdToTypes[number];
+      entityRecord[componentId] = partition[componentIndex] as ComponentIdToData[number];
     }
 
     callback(entityRecord);
@@ -163,7 +166,7 @@ export class ArchetypeStorage {
     this.createPartition({
       entities,
       entityLength,
-      archetype: archetype,
+      archetype,
       componentIds,
       archetypeForInsertIndex: this.archetypes.length,
       newPartitionIndex: 0,

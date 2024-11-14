@@ -36,9 +36,7 @@ export class SliderCustomElement extends ExtendedHTMLElement<SliderProps> {
   connectedCallback() {
     const {valueSignal, min, max, step, isNegative} = this.getAttributes();
 
-    const inputId = `slider-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .substring(2, 5)}`;
+    const inputId = `slider-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
 
     // Use innerHTML for the entire structure and styles
     this.setTemplate(/* HTML */ `

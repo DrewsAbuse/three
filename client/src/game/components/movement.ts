@@ -16,7 +16,6 @@ export type MovementComponentData = [
   RotationAcceleration,
   RotationDeceleration,
 ];
-
 export const movementComponentDataIndexes = {
   velocityMove: 0,
   accelerationMove: 1,

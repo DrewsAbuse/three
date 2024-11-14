@@ -1,5 +1,5 @@
 import type {Vector3} from 'three';
-import type {KeysInput} from '../../components';
+import {KeysInput} from '../../components';
 import {SubSystem} from '../base.ts';
 
 export class MovementInputSystem extends SubSystem {

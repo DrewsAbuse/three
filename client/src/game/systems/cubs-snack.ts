@@ -1,13 +1,13 @@
 import {Matrix4, Quaternion, Vector3} from 'three';
 import type {InstancedMesh} from 'three';
 import type {TickParams} from '../types';
-import {componentIds} from '../components';
+import {componentIdsEnum} from '../components';
 import {System} from './base.ts';
 
 export class CubeSnackSystem extends System {
   constructor() {
     super({
-      requiredComponents: new Uint16Array([componentIds.instancedMesh]),
+      requiredComponents: new Uint16Array([componentIdsEnum.instancedMesh]),
     });
   }
 
@@ -30,7 +30,7 @@ export class CubeSnackSystem extends System {
     entityLength,
   }: TickParams) {
     const multiplier = 10;
-    const instancedMeshIndex = idToComponentOffset[componentIds.instancedMesh];
+    const instancedMeshIndex = idToComponentOffset[componentIdsEnum.instancedMesh];
 
     for (let index = entityStartOffset; index <= lastLiveEntityIndex; index += entityLength) {
       this.dummyMatrix4.multiplyScalar(0);
