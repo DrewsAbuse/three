@@ -1,16 +1,22 @@
-import {Matrix3, Matrix4, Vector3} from 'three';
+import {Matrix4, Vector3} from 'three';
 
 type XYZ = [number, number, number];
+type CollisionInfo = {
+  intersected: boolean;
+  penetrationDepth: number;
+  separationAxis: Vector3;
+};
 
 export class OrientedBoundingBox {
-  private translationVec3: Vector3;
+  private readonly translationVec3: Vector3;
   public readonly centerVec3: Vector3;
   public readonly rotationMat3Columns: [Vector3, Vector3, Vector3];
   public readonly halfExtents: XYZ;
 
-  private frameRotationMatrix: [XYZ, XYZ, XYZ];
-  private frameAbsRotationMatrix: [XYZ, XYZ, XYZ];
-  private frameCoordinate: XYZ;
+  private readonly frameRotationMatrix: [XYZ, XYZ, XYZ];
+  private readonly frameAbsRotationMatrix: [XYZ, XYZ, XYZ];
+  private readonly frameCoordinate: XYZ;
+  private readonly tmpVector: Vector3;
 
   constructor() {
     this.translationVec3 = new Vector3();
@@ -29,6 +35,8 @@ export class OrientedBoundingBox {
       [0, 0, 0],
     ];
     this.frameCoordinate = [0, 0, 0];
+
+    this.tmpVector = new Vector3();
   }
 
   public set(center: Vector3, halfExtents: Vector3, rotation: Matrix4): this {
@@ -57,10 +65,13 @@ export class OrientedBoundingBox {
     return this;
   }
 
-  intersects(otherOBB: OrientedBoundingBox) {
+  intersects(otherOBB: OrientedBoundingBox): CollisionInfo {
     const frameRotationMatrix = this.frameRotationMatrix;
     const frameAbsRotationMatrix = this.frameAbsRotationMatrix;
     const frameCoordinate = this.frameCoordinate;
+
+    let minPenetration = Number.POSITIVE_INFINITY;
+    const bestAxis = new Vector3();
 
     // Set frame rotation matrix - dot products of column vectors of THIS OBB and OTHER OBB
     for (let i = 0; i < 3; i++) {
@@ -76,216 +87,124 @@ export class OrientedBoundingBox {
     frameCoordinate[1] = this.translationVec3.dot(this.rotationMat3Columns[1]);
     frameCoordinate[2] = this.translationVec3.dot(this.rotationMat3Columns[2]);
 
-    // Compute common subexpressions
+    // Compute common subexpressions - absolute values of frame rotation matrix
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        frameAbsRotationMatrix[i][j] = Math.abs(frameRotationMatrix[i][j]) + Number.EPSILON; // Add epsilon to handle floating-point inaccuracies
+        frameAbsRotationMatrix[i][j] = Math.abs(frameRotationMatrix[i][j]) + Number.EPSILON;
       }
     }
 
-    let halfExtentsProjection: number;
-    let otherHalfExtentsProjection: number;
-    let sumOfThisAndOtherHalfExtents: number;
-
-    // Check three frames - dot products of column vectors of THIS OBB and OTHER OBB
+    // Test axes from this OBB - dot products of column vectors of THIS OBB and frame rotation matrix
     for (let i = 0; i < 3; i++) {
-      halfExtentsProjection = this.halfExtents[i];
-      otherHalfExtentsProjection =
+      const halfExtentsProjection = this.halfExtents[i];
+      const otherHalfExtentsProjection =
         otherOBB.halfExtents[0] * frameAbsRotationMatrix[i][0] +
         otherOBB.halfExtents[1] * frameAbsRotationMatrix[i][1] +
         otherOBB.halfExtents[2] * frameAbsRotationMatrix[i][2];
 
-      sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
+      const penetrationDepth =
+        halfExtentsProjection + otherHalfExtentsProjection - Math.abs(frameCoordinate[i]);
 
-      if (Math.abs(frameCoordinate[i]) > sumOfThisAndOtherHalfExtents) {
-        return false;
+      if (penetrationDepth < 0) {
+        return {
+          intersected: false,
+          penetrationDepth: 0,
+          separationAxis: new Vector3(),
+        };
+      }
+
+      if (penetrationDepth < minPenetration) {
+        minPenetration = penetrationDepth;
+        bestAxis.copy(this.rotationMat3Columns[i]);
+        if (frameCoordinate[i] > 0) {
+          bestAxis.multiplyScalar(-1);
+        }
       }
     }
 
-    // Check three frames - dot products of column vectors of OTHER OBB and THIS OBB
+    // Test axes from other OBB - dot products of column vectors of OTHER OBB and frame rotation matrix
     for (let i = 0; i < 3; i++) {
-      halfExtentsProjection =
+      const halfExtentsProjection =
         this.halfExtents[0] * frameAbsRotationMatrix[0][i] +
         this.halfExtents[1] * frameAbsRotationMatrix[1][i] +
         this.halfExtents[2] * frameAbsRotationMatrix[2][i];
-      otherHalfExtentsProjection = otherOBB.halfExtents[i];
+      const otherHalfExtentsProjection = otherOBB.halfExtents[i];
 
-      sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
+      const separation =
+        frameCoordinate[0] * frameRotationMatrix[0][i] +
+        frameCoordinate[1] * frameRotationMatrix[1][i] +
+        frameCoordinate[2] * frameRotationMatrix[2][i];
 
-      if (
-        Math.abs(
-          frameCoordinate[0] * frameRotationMatrix[0][i] +
-            frameCoordinate[1] * frameRotationMatrix[1][i] +
-            frameCoordinate[2] * frameRotationMatrix[2][i]
-        ) > sumOfThisAndOtherHalfExtents
-      ) {
-        return false;
+      const penetrationDepth =
+        halfExtentsProjection + otherHalfExtentsProjection - Math.abs(separation);
+
+      if (penetrationDepth < 0) {
+        return {
+          intersected: false,
+          penetrationDepth: 0,
+          separationAxis: new Vector3(),
+        };
+      }
+
+      if (penetrationDepth < minPenetration) {
+        minPenetration = penetrationDepth;
+        bestAxis.copy(otherOBB.rotationMat3Columns[i]);
+        if (separation > 0) {
+          bestAxis.multiplyScalar(-1);
+        }
       }
     }
 
-    halfExtentsProjection =
-      this.halfExtents[1] * frameAbsRotationMatrix[2][0] +
-      this.halfExtents[2] * frameAbsRotationMatrix[1][0];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[0][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[0][1];
+    // Test cross products of pairs of axes (9 tests) - dot products of pairs of column vectors of THIS OBB and OTHER OBB
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        this.tmpVector.crossVectors(this.rotationMat3Columns[i], otherOBB.rotationMat3Columns[j]);
 
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
+        if (this.tmpVector.lengthSq() < Number.EPSILON) {
+          continue; // Skip parallel axes
+        }
 
-    // Check nine frames - edge cross-products is bigger than sum of half extents
-    if (
-      Math.abs(
-        frameCoordinate[2] * frameRotationMatrix[1][0] -
-          frameCoordinate[1] * frameRotationMatrix[2][0]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
+        this.tmpVector.normalize();
+
+        // Project half-extents onto axis
+        const thisProj =
+          Math.abs(this.halfExtents[0] * this.tmpVector.dot(this.rotationMat3Columns[0])) +
+          Math.abs(this.halfExtents[1] * this.tmpVector.dot(this.rotationMat3Columns[1])) +
+          Math.abs(this.halfExtents[2] * this.tmpVector.dot(this.rotationMat3Columns[2]));
+
+        const otherProj =
+          Math.abs(otherOBB.halfExtents[0] * this.tmpVector.dot(otherOBB.rotationMat3Columns[0])) +
+          Math.abs(otherOBB.halfExtents[1] * this.tmpVector.dot(otherOBB.rotationMat3Columns[1])) +
+          Math.abs(otherOBB.halfExtents[2] * this.tmpVector.dot(otherOBB.rotationMat3Columns[2]));
+
+        const separation = Math.abs(this.tmpVector.dot(this.translationVec3));
+        const penetrationDepth = thisProj + otherProj - separation;
+
+        if (penetrationDepth < 0) {
+          return {
+            intersected: false,
+            penetrationDepth: 0,
+            separationAxis: new Vector3(),
+          };
+        }
+
+        if (penetrationDepth < minPenetration) {
+          minPenetration = penetrationDepth;
+          bestAxis.copy(this.tmpVector);
+        }
+
+        return {
+          intersected: true,
+          penetrationDepth: minPenetration,
+          separationAxis: bestAxis,
+        };
+      }
     }
 
-    halfExtentsProjection =
-      this.halfExtents[1] * frameAbsRotationMatrix[2][1] +
-      this.halfExtents[2] * frameAbsRotationMatrix[1][1];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[0][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[0][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[2] * frameRotationMatrix[1][1] -
-          frameCoordinate[1] * frameRotationMatrix[2][1]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[1] * frameAbsRotationMatrix[2][2] +
-      this.halfExtents[2] * frameAbsRotationMatrix[1][2];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[0][1] +
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[0][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[2] * frameRotationMatrix[1][2] -
-          frameCoordinate[1] * frameRotationMatrix[2][2]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[2][0] +
-      this.halfExtents[2] * frameAbsRotationMatrix[0][0];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[1][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[1][1];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[0] * frameRotationMatrix[2][0] -
-          frameCoordinate[2] * frameRotationMatrix[0][0]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[2][1] +
-      this.halfExtents[2] * frameAbsRotationMatrix[0][1];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[1][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[1][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[0] * frameRotationMatrix[2][1] -
-          frameCoordinate[2] * frameRotationMatrix[0][1]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[2][2] +
-      this.halfExtents[2] * frameAbsRotationMatrix[0][2];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[1][1] +
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[1][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[0] * frameRotationMatrix[2][2] -
-          frameCoordinate[2] * frameRotationMatrix[0][2]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[1][0] +
-      this.halfExtents[1] * frameAbsRotationMatrix[0][0];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[2][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[2][1];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[1] * frameRotationMatrix[0][0] -
-          frameCoordinate[0] * frameRotationMatrix[1][0]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[1][1] +
-      this.halfExtents[1] * frameAbsRotationMatrix[0][1];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[2][2] +
-      otherOBB.halfExtents[2] * frameAbsRotationMatrix[2][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[1] * frameRotationMatrix[0][1] -
-          frameCoordinate[0] * frameRotationMatrix[1][1]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    halfExtentsProjection =
-      this.halfExtents[0] * frameAbsRotationMatrix[1][2] +
-      this.halfExtents[1] * frameAbsRotationMatrix[0][2];
-    otherHalfExtentsProjection =
-      otherOBB.halfExtents[0] * frameAbsRotationMatrix[2][1] +
-      otherOBB.halfExtents[1] * frameAbsRotationMatrix[2][0];
-
-    sumOfThisAndOtherHalfExtents = halfExtentsProjection + otherHalfExtentsProjection;
-
-    if (
-      Math.abs(
-        frameCoordinate[1] * frameRotationMatrix[0][2] -
-          frameCoordinate[0] * frameRotationMatrix[1][2]
-      ) > sumOfThisAndOtherHalfExtents
-    ) {
-      return false;
-    }
-
-    return true;
+    return {
+      intersected: true,
+      penetrationDepth: minPenetration,
+      separationAxis: bestAxis,
+    };
   }
 }
