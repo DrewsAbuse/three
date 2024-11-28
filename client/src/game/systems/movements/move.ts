@@ -1,7 +1,8 @@
-import {Quaternion, Vector3} from 'three';
+import {Box3, Quaternion, Vector3} from 'three';
 import type {ComponentIdToData} from '../../components';
 import type {TickParams} from '../../types';
-import {SpatialHashGrid, normalizedVec3} from '../../helpers';
+import type {GridOBBInHouse} from '../../helpers';
+import {normalizedVec3} from '../../helpers';
 import {System} from '../base.ts';
 import {componentIdsEnum, movementComponentDataIndexes} from '../../components';
 import {MovementInputSystem} from './input.ts';
@@ -21,9 +22,9 @@ export class MovementsWithKeysInputSystemRunner extends System {
 
   frameDeceleration = new Vector3();
   quaternionContainer = new Quaternion();
-  grid: SpatialHashGrid;
+  grid: GridOBBInHouse;
 
-  constructor(grid: SpatialHashGrid) {
+  constructor(grid: GridOBBInHouse) {
     super({
       requiredComponents: SYSTEM_REQUIRED_COMPONENTS,
     });
@@ -53,6 +54,8 @@ export class MovementsWithKeysInputSystemRunner extends System {
       const movementComponentData = partition[
         index + movementComponentOffset
       ] as ComponentIdToData[componentIdsEnum.movement];
+
+      const entityIndex = partition[index] as number;
 
       const rotationVelocity =
         movementComponentData[this.componentsIndexes.movement.velocityRotation];
@@ -123,9 +126,9 @@ export class MovementsWithKeysInputSystemRunner extends System {
 
       mesh.position.add(moveVelocity.clone().applyQuaternion(mesh.quaternion));
 
-      if (!this.positionBefore.equals(mesh.position)) {
-        this.grid.move(mesh, this.positionBefore);
-      }
+      const center = new Box3().setFromObject(mesh).getCenter(new Vector3());
+
+      this.grid.updateEntity(entityIndex, center.x, center.y, center.z);
 
       this.quaternionContainer.set(0, 0, 0, 1);
       this.frameDeceleration.set(0, 0, 0);

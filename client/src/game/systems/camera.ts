@@ -7,7 +7,7 @@ import {System} from './base.ts';
 const FOV = 100;
 const ASPECT = window.innerWidth / window.innerHeight;
 const NEAR = 0.2;
-const FAR = 3000;
+const FAR = 5000;
 
 const camera = new PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
 
@@ -20,6 +20,9 @@ const cameraAxisHelper = new AxesHelper(-10);
 
 camera.add(cameraAxisHelper);
 camera.add(sphereMesh);
+
+camera.position.set(10, 0, 0);
+camera.lookAt(0, 0, 0);
 
 export class CameraSystem extends System {
   camera = camera;

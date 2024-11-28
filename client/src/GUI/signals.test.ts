@@ -723,8 +723,6 @@ test('computed tree of 2,2,4', () => {
   ]);
 });
 
-//Skip async shiiiit
-/*
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 it.skip('async macrotask in effect tree of 3,3,3', async () => {
@@ -753,7 +751,6 @@ it.skip('async macrotask in effect tree of 3,3,3', async () => {
       effectsAsync.push({name: 'effect1', value: signal.value});
 
       signal.value += 1;
-
     }, 0);
   });
 
@@ -768,7 +765,6 @@ it.skip('async macrotask in effect tree of 3,3,3', async () => {
       effectsAsync.push({name: 'effect2', value: signal.value});
 
       signal.value += 1;
-
     }, 0);
   });
 
@@ -883,7 +879,6 @@ it.skip('async microtask in effect tree of 3,3,3', async () => {
       effectsAsync.push({name: 'effect1', value: signal.value});
 
       signal.value += 1;
-
     });
   });
 
@@ -898,7 +893,6 @@ it.skip('async microtask in effect tree of 3,3,3', async () => {
       effectsAsync.push({name: 'effect2', value: signal.value});
 
       signal.value += 1;
-
     });
   });
 
@@ -981,7 +975,6 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
       });
 
       signal.value += 1;
-
     });
   });
 
@@ -1002,7 +995,6 @@ it.skip('async microtask emit macrotask in effect tree of 3,3,3', async () => {
       });
 
       signal.value += 1;
-
     });
   });
 
@@ -1180,7 +1172,6 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
       text: signal.value,
     });
 
-
     const fetchedSignal = await asyncIncrement(signal);
 
     effectFetch.push({name: 'effect2', value: fetchedSignal.value});
@@ -1195,7 +1186,6 @@ it.skip('async fetch mutated signal in effect tree of 9,11,3', async () => {
       name: 'effect3',
       text: signal.value,
     });
-
 
     tree.child.child.child.text = signal.value.toString();
   });
@@ -1277,7 +1267,6 @@ it.skip('async fetch mutated signal in effect tree of 9,11,7', async () => {
       name: 'effect2',
       text: signal.value,
     });
-
 
     const fetchedSignal = await asyncIncrement(signal);
 
@@ -1380,7 +1369,6 @@ it.skip('async fetch mutated signal in effect tree of 9,11,11', async () => {
       text: signal.value,
     });
 
-
     const fetchedSignal = await asyncIncrement(signal);
 
     effectFetch.push({name: 'effect2', value: fetchedSignal.value});
@@ -1471,7 +1459,6 @@ it.skip('async effect computed tree of 2,2,4', async () => {
       });
 
       signal1.value += 2;
-
     });
   });
 
@@ -1490,7 +1477,6 @@ it.skip('async effect computed tree of 2,2,4', async () => {
       });
 
       signal2.value += 2;
-
     });
   });
 
@@ -1529,5 +1515,4 @@ it.skip('async effect computed tree of 2,2,4', async () => {
   ]);
 });
 
-
- */
+//

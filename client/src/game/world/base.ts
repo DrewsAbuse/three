@@ -1,12 +1,12 @@
 import type {ArchetypeStorage} from '../storage';
 import {MovementsWithKeysInputSystemRunner} from '../systems';
-import {SpatialHashGrid} from '../helpers';
 import {CollisionSystem} from '../systems/collision.ts';
+import {GridOBBInHouse} from '../helpers/grid.ts';
 
 export abstract class World {
   DEBUG = false;
   storage: ArchetypeStorage;
-  grid = new SpatialHashGrid();
+  grid = new GridOBBInHouse();
 
   constructor(storage: ArchetypeStorage) {
     this.storage = storage;

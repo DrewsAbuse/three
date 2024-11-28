@@ -1,4 +1,5 @@
-import {Matrix4, Vector3} from 'three';
+import {Vector3} from 'three';
+import type {Matrix4} from 'three';
 
 type XYZ = [number, number, number];
 type CollisionInfo = {
@@ -66,9 +67,9 @@ export class OrientedBoundingBox {
   }
 
   intersects(otherOBB: OrientedBoundingBox): CollisionInfo {
-    const frameRotationMatrix = this.frameRotationMatrix;
-    const frameAbsRotationMatrix = this.frameAbsRotationMatrix;
-    const frameCoordinate = this.frameCoordinate;
+    const {frameRotationMatrix} = this;
+    const {frameAbsRotationMatrix} = this;
+    const {frameCoordinate} = this;
 
     let minPenetration = Number.POSITIVE_INFINITY;
     const bestAxis = new Vector3();

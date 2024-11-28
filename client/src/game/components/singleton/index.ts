@@ -1,4 +1,5 @@
-import {KeysInput, keysInput} from './keys-input.ts';
+import type {KeysInput} from './keys-input.ts';
+import {keysInput} from './keys-input.ts';
 
 export * from './keys-input.ts';
 

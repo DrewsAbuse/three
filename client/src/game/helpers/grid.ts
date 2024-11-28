@@ -1,5 +1,6 @@
-import {Box3, Matrix3, Matrix4, Mesh, Vector3} from 'three';
+import {Matrix3, Vector3} from 'three';
 import {OBB} from 'three/addons/math/OBB.js';
+import type {Box3, Matrix4, Mesh} from 'three';
 import {OrientedBoundingBox} from './obb.ts';
 
 const CHUNK_BITS = 10;
@@ -90,10 +91,12 @@ export class Grid {
 
   private getChunkOffset(chunkKey: string): number {
     let chunkOffset = this.chunkMap.get(chunkKey);
+
     if (chunkOffset === undefined) {
       chunkOffset = this.allocateChunk();
       this.chunkMap.set(chunkKey, chunkOffset);
     }
+
     return chunkOffset;
   }
 
@@ -110,6 +113,7 @@ export class Grid {
     const chunkX = Math.floor(x / (this.cellSize * CHUNK_SIZE));
     const chunkY = Math.floor(y / (this.cellSize * CHUNK_SIZE));
     const chunkZ = Math.floor(z / (this.cellSize * CHUNK_SIZE));
+
     return `${chunkX},${chunkY},${chunkZ}`;
   }
 
@@ -228,7 +232,9 @@ export class Grid {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       const entitiesInChunk = this.chunkData[chunkOffset];
       const chunkDataStart = chunkOffset + CHUNK_HEADER_SIZE;
@@ -266,7 +272,9 @@ export class Grid {
       }
     }
 
-    if (entityIndex === -1) return;
+    if (entityIndex === -1) {
+      return;
+    }
 
     const entity = this.entities[entityIndex];
 
@@ -321,7 +329,9 @@ export class Grid {
 
     this.entities[entityIndex] = entity;
 
-    if (!chunksChanged) return;
+    if (!chunksChanged) {
+      return;
+    }
 
     // Remove from old chunks - we know the entity is in all of them
     const entityIdx = entityIndex / ENTITY_STRIDE_OBB;
@@ -332,7 +342,9 @@ export class Grid {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       const entitiesInChunk = this.chunkData[chunkOffset];
       const chunkDataStart = chunkOffset + CHUNK_HEADER_SIZE;
@@ -432,10 +444,12 @@ export class GridOBBInHouse {
 
   private getChunkOffset(chunkKey: string): number {
     let chunkOffset = this.chunkMap.get(chunkKey);
+
     if (chunkOffset === undefined) {
       chunkOffset = this.allocateChunk();
       this.chunkMap.set(chunkKey, chunkOffset);
     }
+
     return chunkOffset;
   }
 
@@ -452,6 +466,7 @@ export class GridOBBInHouse {
     const chunkX = Math.floor(x / (this.cellSize * CHUNK_SIZE));
     const chunkY = Math.floor(y / (this.cellSize * CHUNK_SIZE));
     const chunkZ = Math.floor(z / (this.cellSize * CHUNK_SIZE));
+
     return `${chunkX},${chunkY},${chunkZ}`;
   }
 
@@ -548,7 +563,9 @@ export class GridOBBInHouse {
       }
     }
 
-    if (entityIndex === -1) return this.collisions;
+    if (entityIndex === -1) {
+      return this.collisions;
+    }
 
     const x = this.entityData[entityIndex + X_OFFSET];
     const y = this.entityData[entityIndex + Y_OFFSET];
@@ -574,7 +591,9 @@ export class GridOBBInHouse {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       // Direct array access for better performance
       const entitiesInChunk = this.chunkData[chunkOffset];
@@ -584,7 +603,9 @@ export class GridOBBInHouse {
         const otherEntityIndex = this.chunkData[chunkDataStart + j];
 
         // Skip if it's the same entity or we've already processed it
-        if (otherEntityIndex === entityIndex) continue;
+        if (otherEntityIndex === entityIndex) {
+          continue;
+        }
 
         // Cache other entity data
         const otherX = this.entityData[otherEntityIndex + X_OFFSET];
@@ -657,7 +678,9 @@ export class GridOBBInHouse {
       }
     }
 
-    if (entityIndex === -1) return;
+    if (entityIndex === -1) {
+      return;
+    }
 
     const oldX = this.entityData[entityIndex + X_OFFSET];
     const oldY = this.entityData[entityIndex + Y_OFFSET];
@@ -714,12 +737,22 @@ export class GridOBBInHouse {
     this.entityData[entityIndex + X_OFFSET] = x;
     this.entityData[entityIndex + Y_OFFSET] = y;
     this.entityData[entityIndex + Z_OFFSET] = z;
-    if (maybeBoundX !== undefined) this.entityData[entityIndex + BOUND_X_OFFSET] = maybeBoundX;
-    if (maybeBoundY !== undefined) this.entityData[entityIndex + BOUND_Y_OFFSET] = maybeBoundY;
-    if (maybeBoundZ !== undefined) this.entityData[entityIndex + BOUND_Z_OFFSET] = maybeBoundZ;
+    if (maybeBoundX !== undefined) {
+      this.entityData[entityIndex + BOUND_X_OFFSET] = maybeBoundX;
+    }
+
+    if (maybeBoundY !== undefined) {
+      this.entityData[entityIndex + BOUND_Y_OFFSET] = maybeBoundY;
+    }
+
+    if (maybeBoundZ !== undefined) {
+      this.entityData[entityIndex + BOUND_Z_OFFSET] = maybeBoundZ;
+    }
 
     // If chunks haven't changed, we're done
-    if (!chunksChanged) return;
+    if (!chunksChanged) {
+      return;
+    }
 
     // Remove from old chunks
     const entityIdx = entityIndex / ENTITY_STRIDE_OBB;
@@ -730,7 +763,9 @@ export class GridOBBInHouse {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       // Find and remove entity from chunk
       const entitiesInChunk = this.chunkData[chunkOffset];
@@ -832,10 +867,12 @@ export class GridOBBThreeJS {
 
   private getChunkOffset(chunkKey: string): number {
     let chunkOffset = this.chunkMap.get(chunkKey);
+
     if (chunkOffset === undefined) {
       chunkOffset = this.allocateChunk();
       this.chunkMap.set(chunkKey, chunkOffset);
     }
+
     return chunkOffset;
   }
 
@@ -852,6 +889,7 @@ export class GridOBBThreeJS {
     const chunkX = Math.floor(x / (this.cellSize * CHUNK_SIZE));
     const chunkY = Math.floor(y / (this.cellSize * CHUNK_SIZE));
     const chunkZ = Math.floor(z / (this.cellSize * CHUNK_SIZE));
+
     return `${chunkX},${chunkY},${chunkZ}`;
   }
 
@@ -948,7 +986,9 @@ export class GridOBBThreeJS {
       }
     }
 
-    if (entityIndex === -1) return this.collisions;
+    if (entityIndex === -1) {
+      return this.collisions;
+    }
 
     // Cache entity data in local variables to avoid repeated array access
     const x = this.entityData[entityIndex + X_OFFSET];
@@ -980,7 +1020,9 @@ export class GridOBBThreeJS {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       // Direct array access for better performance
       const entitiesInChunk = this.chunkData[chunkOffset];
@@ -991,7 +1033,9 @@ export class GridOBBThreeJS {
         const otherEntityIndex = this.chunkData[chunkDataStart + j];
 
         // Skip if it's the same entity or we've already processed it
-        if (otherEntityIndex === entityIndex) continue;
+        if (otherEntityIndex === entityIndex) {
+          continue;
+        }
 
         // Cache other entity data
         const otherX = this.entityData[otherEntityIndex + X_OFFSET];
@@ -1068,7 +1112,9 @@ export class GridOBBThreeJS {
       }
     }
 
-    if (entityIndex === -1) return;
+    if (entityIndex === -1) {
+      return;
+    }
 
     const oldX = this.entityData[entityIndex + X_OFFSET];
     const oldY = this.entityData[entityIndex + Y_OFFSET];
@@ -1125,12 +1171,22 @@ export class GridOBBThreeJS {
     this.entityData[entityIndex + X_OFFSET] = x;
     this.entityData[entityIndex + Y_OFFSET] = y;
     this.entityData[entityIndex + Z_OFFSET] = z;
-    if (maybeBoundX !== undefined) this.entityData[entityIndex + BOUND_X_OFFSET] = maybeBoundX;
-    if (maybeBoundY !== undefined) this.entityData[entityIndex + BOUND_Y_OFFSET] = maybeBoundY;
-    if (maybeBoundZ !== undefined) this.entityData[entityIndex + BOUND_Z_OFFSET] = maybeBoundZ;
+    if (maybeBoundX !== undefined) {
+      this.entityData[entityIndex + BOUND_X_OFFSET] = maybeBoundX;
+    }
+
+    if (maybeBoundY !== undefined) {
+      this.entityData[entityIndex + BOUND_Y_OFFSET] = maybeBoundY;
+    }
+
+    if (maybeBoundZ !== undefined) {
+      this.entityData[entityIndex + BOUND_Z_OFFSET] = maybeBoundZ;
+    }
 
     // If chunks haven't changed, we're done
-    if (!chunksChanged) return;
+    if (!chunksChanged) {
+      return;
+    }
 
     // Remove from old chunks
     const entityIdx = entityIndex / ENTITY_STRIDE_OBB;
@@ -1141,7 +1197,9 @@ export class GridOBBThreeJS {
       const chunkKey = this.entityChunks[entityChunkBase + i];
       const chunkOffset = this.chunkMap.get(chunkKey);
 
-      if (chunkOffset === undefined) continue;
+      if (chunkOffset === undefined) {
+        continue;
+      }
 
       // Find and remove entity from chunk
       const entitiesInChunk = this.chunkData[chunkOffset];

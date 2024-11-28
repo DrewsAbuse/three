@@ -1,39 +1,53 @@
-import {BoxGeometry, MeshBasicMaterial} from 'three';
-import {createPlayerHUD, initGUI} from '../GUI/Components';
-import {createSpeedometer} from '../GUI/Components/Speedometer.ts';
+import {BoxGeometry, Mesh, MeshBasicMaterial} from 'three';
+import {createPlayerHUD, initGUI} from '../GUI/Components/index.ts';
 import {forwardAcceleration, forwardDeceleration, player} from './entities/player.ts';
-import {createBox} from './entities/cube.ts';
-import {ClientWorld} from './world';
-import {createInstancedMeshCloudCube} from './helpers';
-import {componentIds} from './components';
-import {ArchetypeStorage} from './world/storage.ts';
+import {ClientWorld} from './world/index.ts';
+import {ArchetypeStorage} from './storage/index.ts';
+import {componentIdsEnum} from './components';
 
 initGUI();
-
 const storage = new ArchetypeStorage();
 const world = new ClientWorld(storage);
 
 world.createEntityAndAddToScene(player);
-world.createEntityAndAddToScene(createBox());
 
-const inst = createInstancedMeshCloudCube({
-  attributes: {instanceCount: 10000},
-  cloudScale: 800,
-  particleGeometry: new BoxGeometry(8, 8, 8),
-  particleMaterial: new MeshBasicMaterial({color: 0xffffff}),
-});
+const mesh1 = new Mesh(
+  new BoxGeometry(16, 16, 16),
+  new MeshBasicMaterial({color: 0x00ffff, wireframe: true})
+);
 
-world.createEntityAndAddToScene({
-  entityArray: [999, 0, 0, inst],
-  componentsId: new Uint16Array([componentIds.instancedMesh]),
-});
+mesh1.position.set(-8, 8, 8);
+
+const mesh2 = new Mesh(
+  new BoxGeometry(16, 16, 16),
+  new MeshBasicMaterial({color: 0x00ffff, wireframe: true})
+);
+mesh2.position.set(-8, 8, -8);
+
+world.scene.add(mesh1);
+world.scene.add(mesh2);
 
 world.requestAnimationFrameFixedTimeStep();
 
-document.getElementById('hud-right-bottom')!.innerHTML += createSpeedometer({
-  speedSignal: forwardAcceleration,
-  maxSpeed: 10,
+setInterval(() => {
+  console.debug('world.grid', world.grid);
+}, 5000);
+
+const geometry = new BoxGeometry(5, 5, 5);
+geometry.translate(0, 2, 0);
+
+const mesh = new Mesh(geometry, new MeshBasicMaterial({color: 0x00ff00}));
+
+world.createEntityAndAddToScene({
+  entityArray: [999, 0, 0, mesh],
+  componentsId: new Uint16Array([componentIdsEnum.mesh]),
 });
+//
+// document.getElementById('hud-right-bottom')!.innerHTML += createSpeedometer({
+// speedSignal: forwardAcceleration,
+// maxSpeed: 10,
+// });
+//
 
 document.getElementById('hud-left-bottom')!.innerHTML += createPlayerHUD({
   forwardAcceleration,

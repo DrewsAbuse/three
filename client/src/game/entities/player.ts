@@ -1,5 +1,5 @@
-import {Mesh, Object3D, Quaternion, Vector3} from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Quaternion, Vector3} from 'three';
+import {PLAYER} from '@abuse/constants';
 import type {EntityInput} from '../types';
 import type {ComponentIdToData, MovementComponentData} from '../components';
 import {
@@ -8,32 +8,37 @@ import {
   keysInputComponent,
   movementComponentDataIndexes,
 } from '../components';
-import {autoIncrementId} from '../helpers';
-import {player as playerJSON} from '../env.ts';
 import {signalsRegistrar} from '../../GUI/signals.ts';
+import {GLTFToVoxels} from '../../libs/@shared/helpers/models/gltf-to-voxels.ts';
+import {autoIncrementId} from '../helpers';
 
-const gltfLoader = new GLTFLoader();
+const voxelSize = 0.25;
 
-//TODO: Implement proper import and loading of models
-export const model = await gltfLoader.loadAsync('models/star_fox/scene.gltf').then(gltf => {
-  gltf.scene.scale.set(12, 12, 12);
-  gltf.scene.rotateY(Math.PI);
+const voxelizer = new GLTFToVoxels(voxelSize);
 
-  return gltf.scene;
-});
+const scale = 4;
+
+const instanced = voxelizer.createInstancedMesh(
+  await voxelizer
+    .loadModel('models/star_fox/scene.gltf', scale, {
+      x: 0,
+      y: Math.PI,
+      z: 0,
+    })
+    .then(({mesh}) => mesh),
+  scale
+);
+instanced.rotation.y = Math.PI;
 
 export const {MOVE_ACCELERATION, MOVE_DECELERATION, ROTATION_ACCELERATION, ROTATION_DECELERATION} =
-  playerJSON.MOVE;
+  PLAYER.MOVE;
 
 export const forwardAcceleration = signalsRegistrar.createSignal<number>(MOVE_ACCELERATION.z);
 export const forwardDeceleration = signalsRegistrar.createSignal<number>(MOVE_DECELERATION.z);
 
 export const createPlayer = (): EntityInput => {
-  const mesh = new Mesh();
-  mesh.add(model);
-
   const meshComponent = new Component({
-    data: mesh,
+    data: new Mesh(new BoxGeometry(5, 5, 5), new MeshBasicMaterial({color: 0x00ff00})),
     id: componentIdsEnum.mesh,
   });
 
@@ -109,7 +114,12 @@ export const createPlayer = (): EntityInput => {
 
   return {
     componentsId: new Uint16Array(sortedComponents.map(({id}) => id)),
-    entityArray: [autoIncrementId(), 0, 0, ...sortedComponents.map(component => component.data)],
+    entityArray: [
+      autoIncrementId() || 666,
+      0,
+      0,
+      ...sortedComponents.map(component => component.data),
+    ],
   };
 };
 

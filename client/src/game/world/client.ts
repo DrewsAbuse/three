@@ -1,14 +1,18 @@
 import {AmbientLight, Group, InstancedMesh, Mesh, Object3D, Scene} from 'three';
 import Stats from 'stats.js';
+import {CLIENT} from '@abuse/constants';
 import type {WebGLRenderer} from 'three';
-import {Component, ComponentIdToData, componentIdsEnum} from '../components';
+import type {Component, ComponentIdToData} from '../components';
+import type {EntityArray} from '../types';
+import type {ArchetypeStorage} from '../storage/index.ts';
+import type {WebGPURenderer} from './web-gup.ts';
+import {componentIdsEnum} from '../components';
 import {CameraSystem, UIWriteSystem} from '../systems';
-import {FIXED_TIME_STEP, SYSTEM_STEP} from '../env.ts';
 import {skybox} from '../../assets/sky-box/skybox.ts';
-import {EntityArray} from '../types';
-import {ArchetypeStorage} from '../storage/index.ts';
 import {World} from './base.ts';
-import {WebGPURenderer, webGPURenderer} from './web-gup.ts';
+import {webGPURenderer} from './web-gup.ts';
+
+const {FIXED_TIME_STEP, SYSTEM_STEP} = CLIENT;
 
 export class ClientWorld extends World {
   renderSystemUpdateId = -1;
@@ -100,7 +104,23 @@ export class ClientWorld extends World {
     );
 
     if (meshComponentIndex !== -1) {
-      this.sceneEntities.addMesh(params.entityArray[meshComponentIndex + 3]);
+      const mesh = params.entityArray[
+        meshComponentIndex + 3
+      ] as ComponentIdToData[componentIdsEnum.mesh];
+
+      //const center = new Box3().setFromObject(mesh).getCenter(new Vector3());
+
+      this.grid.addEntity(
+        params.entityArray[0],
+        mesh.position.x,
+        mesh.position.y,
+        mesh.position.z,
+        5,
+        5,
+        5,
+        mesh.matrixWorld
+      );
+      this.sceneEntities.addMesh(mesh);
     }
 
     const uiWriteComponentIndex = params.componentsId.indexOf(componentIdsEnum.uiWrite);
@@ -127,7 +147,6 @@ export class ClientWorld extends World {
         mesh instanceof Object3D
       ) {
         this.scene.add(mesh);
-        this.grid.insert(mesh);
 
         return;
       }
@@ -137,7 +156,6 @@ export class ClientWorld extends World {
 
     this.sceneEntities.meshToDelete.forEach(mesh => {
       this.scene.remove(mesh as Mesh);
-      this.grid.remove(mesh as Mesh);
     });
 
     this.sceneEntities.meshToAdd.length = 0;
@@ -155,11 +173,13 @@ export class ClientWorld extends World {
       componentIds: this.movementsSystemRunner.requiredComponents,
       system: this.movementsSystemRunner,
     });
+
     this.storage.applyTickToEntitiesByComponentIds({
       systemStep: this.systemStep,
       componentIds: this.cameraSystem.requiredComponents,
       system: this.cameraSystem,
     });
+
     this.storage.applyTickToEntitiesByComponentIds({
       systemStep: this.systemStep,
       componentIds: this.uiWriteSystem.requiredComponents,

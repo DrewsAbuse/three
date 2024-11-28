@@ -1,7 +1,6 @@
 import type {ComponentLabelToTypes} from '../../components';
 import type {EntityInputs} from '../../types';
 import {componentIdsEnum} from '../../components/index.ts';
-
 import {autoIncrementId} from '../../helpers/utils.ts';
 
 export const createEntity = <T extends ComponentLabelToTypes>(

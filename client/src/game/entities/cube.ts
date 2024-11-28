@@ -2,7 +2,6 @@ import {BoxGeometry, Mesh, MeshBasicMaterial, Vector3} from 'three';
 import type {EntityInput} from '../types';
 import type {ComponentIdToData} from '../components';
 import {Component, componentIdsEnum} from '../components';
-
 import {autoIncrementId} from '../helpers/utils.ts';
 
 //TODO: FIX MEMORY ALLOCATION - Too many arrays being created for components

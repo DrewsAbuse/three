@@ -1,0 +1,72 @@
+
+    /* Importing the Press Start 2P Font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://unpkg.com/nes.css@2.3.0/css/nes.min.css');
+
+/* Custom NES.css Slider Styling */
+.nes-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: #333;
+    border: 2px solid #fff;
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+}
+
+.nes-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 2px solid #333;
+    box-shadow: 2px 2px 0 #000;
+    border-radius: 3px;
+}
+
+.nes-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 2px solid #333;
+    box-shadow: 2px 2px 0 #000;
+    border-radius: 3px;
+}
+
+/* Style for the container and value display */
+.slider-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+}
+
+.custom-slider {
+    font-family: 'Press Start 2P', cursive; /* Applying NES.css Font */
+}
+
+/* Ensuring the text also uses the retro font */
+.custom-slider .title,
+.custom-slider .nes-text {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px; /* Slightly smaller size for better fit */
+}
+
+.custom-slider .nes-text {
+    font-size: 14px;
+}
+
+.custom-slider p {
+    margin-bottom: 0 !important;
+}
+
+.canvas {
+    display: block; /* Remove default margin for canvas */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0; /* WebGL canvas stays in the background */
+}
