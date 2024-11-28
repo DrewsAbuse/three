@@ -15,7 +15,7 @@
   },
   "prettier": "@shelf/prettier-config",
   "dependencies": {
-    "@abuse/constants": "file:../libs/packages/constants",
+    "@abuse/constants": "file:../packages/constants",
     "@gltf-transform/core": "4.1.0",
     "stats.js": "0.17.0",
     "three": "0.162.0"
