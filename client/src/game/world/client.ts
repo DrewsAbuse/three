@@ -8,7 +8,7 @@ import type {ArchetypeStorage} from '../storage/index.ts';
 import type {WebGPURenderer} from './web-gup.ts';
 import {componentIdsEnum} from '../components';
 import {CameraSystem, UIWriteSystem} from '../systems';
-import {skybox} from '../../assets/sky-box/skybox.ts';
+import {skybox} from '../helpers';
 import {World} from './base.ts';
 import {webGPURenderer} from './web-gup.ts';
 
