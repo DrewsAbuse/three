@@ -1,0 +1,12 @@
+{
+  "extends": "@shelf/tsconfig/backend",
+  "exclude": ["node_modules"],
+  "include": ["packages"],
+  "compilerOptions": {
+    "typeRoots": ["node_modules/@types", "./types-3rd-party"],
+    "module": "NodeNext",
+    "target": "es2021",
+    "declaration": true,
+    "declarationMap": true,
+  }
+}
