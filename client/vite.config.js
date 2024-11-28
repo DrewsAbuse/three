@@ -21,6 +21,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(root, 'index.html'),
+        'gltf-to-voxels': resolve(root, 'gltf-to-voxels.html'),
       },
     },
   },
