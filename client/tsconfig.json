@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true
   },
   "exclude": [
-    "node_modules", "../client/node_modules", "../client/src/assets",
+    "node_modules", "../client/node_modules",
   ],
   "include": [
     "src", "public"
