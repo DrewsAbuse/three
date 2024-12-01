@@ -134,7 +134,7 @@ export class ArchetypeStorage {
 
     this.fillPartition({
       entities,
-      lastNotDeletedEntityOffset: entities.length * entityLength - entityLength,
+      lastNotDeletedEntityOffset: entities.length * entityLength,
       partition,
       partitionForInsertIndex,
       archetypeForInsertIndex,
